@@ -20,10 +20,14 @@ export function useAddTransaction() {
 
     return useMutation({
         mutationFn: async (newTransaction: AddTransactionParams) => {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('User not authenticated')
+
             const { data, error } = await supabase
                 .from('transactions')
                 .insert({
                     ...newTransaction,
+                    user_id: user.id,
                     date: newTransaction.date.toISOString(),
                 })
                 .select()

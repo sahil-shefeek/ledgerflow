@@ -7,6 +7,7 @@ import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { Loader2, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { AddContactDrawer } from './AddContactDrawer'
 
 export function ContactList() {
     const { data: contacts, isLoading, error } = useContacts()
@@ -31,10 +32,12 @@ export function ContactList() {
         <Card className="h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-lg font-medium">Contacts</CardTitle>
-                <Button size="sm" variant="outline">
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add New
-                </Button>
+                <AddContactDrawer>
+                    <Button size="sm" variant="outline">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add New
+                    </Button>
+                </AddContactDrawer>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="divide-y">

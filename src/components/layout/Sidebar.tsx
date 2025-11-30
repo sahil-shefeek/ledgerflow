@@ -91,21 +91,35 @@ export function Sidebar() {
                 </nav>
             </div>
             <div className="border-t p-4">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-col gap-2">
                     <Button
                         variant="ghost"
-                        size="icon"
+                        size="sm"
+                        className="w-full justify-start gap-2"
                         onClick={toggleMode}
                         title={mode === 'business' ? 'Switch to Personal' : 'Switch to Business'}
                     >
                         {mode === 'business' ? (
-                            <Sun className="h-5 w-5" />
+                            <>
+                                <Wallet className="h-4 w-4" />
+                                <span>Switch to Personal</span>
+                            </>
                         ) : (
-                            <Moon className="h-5 w-5" />
+                            <>
+                                <Briefcase className="h-4 w-4" />
+                                <span>Switch to Business</span>
+                            </>
                         )}
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={handleLogout} title="Logout">
-                        <LogOut className="h-5 w-5" />
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={handleLogout}
+                        title="Logout"
+                    >
+                        <LogOut className="h-4 w-4" />
+                        <span>Logout</span>
                     </Button>
                 </div>
             </div>
