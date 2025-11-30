@@ -52,15 +52,28 @@ create table public.transactions (
   created_at timestamptz default now()
 );
 
+-- 5. Table: goals (For Personal Savings Goals)
+create table public.goals (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  target_amount numeric not null check (target_amount > 0),
+  current_amount numeric default 0 check (current_amount >= 0),
+  deadline timestamptz,
+  created_at timestamptz default now()
+);
+
 -- Indexes for performance
 create index transactions_user_id_date_idx on public.transactions(user_id, date);
 create index transactions_mode_idx on public.transactions(mode);
+create index goals_user_id_idx on public.goals(user_id);
 
 -- RLS Policies
 alter table public.profiles enable row level security;
 alter table public.contacts enable row level security;
 alter table public.categories enable row level security;
 alter table public.transactions enable row level security;
+alter table public.goals enable row level security;
 
 -- Profiles: Users can only see their own profile
 create policy "Users can view own profile" on public.profiles
@@ -106,6 +119,19 @@ create policy "Users can update own transactions" on public.transactions
   for update using (auth.uid() = user_id);
 
 create policy "Users can delete own transactions" on public.transactions
+  for delete using (auth.uid() = user_id);
+
+-- Goals: Users can only see/edit their own goals
+create policy "Users can view own goals" on public.goals
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own goals" on public.goals
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update own goals" on public.goals
+  for update using (auth.uid() = user_id);
+
+create policy "Users can delete own goals" on public.goals
   for delete using (auth.uid() = user_id);
 
 
@@ -190,3 +216,30 @@ begin
   group by c.name, c.icon;
 end;
 $$;
+
+
+-- Seed default categories for new users
+-- Note: This trigger ensures every new user gets a default set of categories
+create or replace function public.seed_default_categories()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.categories (user_id, name, icon, type)
+  values
+    (new.id, 'Food', '🍔', 'EXPENSE'),
+    (new.id, 'Transport', '🚗', 'EXPENSE'),
+    (new.id, 'Entertainment', '🎬', 'EXPENSE'),
+    (new.id, 'Shopping', '🛍️', 'EXPENSE'),
+    (new.id, 'Bills', '💡', 'EXPENSE'),
+    (new.id, 'Health', '🏥', 'EXPENSE');
+  return new;
+end;
+$$;
+
+-- Attach trigger to auth.users to seed categories on signup
+create trigger on_auth_user_created_seed_categories
+  after insert on auth.users
+  for each row execute procedure public.seed_default_categories();
+

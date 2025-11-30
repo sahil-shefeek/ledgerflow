@@ -13,6 +13,8 @@ import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { Loader2, Minus, Plus } from 'lucide-react'
 import { useContacts } from '@/hooks/useContacts'
+import { useAppStore } from '@/store/useAppStore'
+import { useBudgets } from '@/hooks/useBudgets'
 import {
     Select,
     SelectContent,
@@ -25,14 +27,17 @@ const transactionSchema = z.object({
     amount: z.number().min(1, 'Amount must be greater than 0'),
     description: z.string().optional(),
     contact_id: z.string().optional(),
+    category_id: z.string().optional(),
     date: z.date(),
     flow: z.enum(['IN', 'OUT']),
 })
 
 export function TransactionDrawer() {
     const [open, setOpen] = useState(false)
+    const { mode } = useAppStore()
     const { mutate: addTransaction, isPending } = useAddTransaction()
     const { data: contacts } = useContacts()
+    const { data: categories } = useBudgets()
 
     const [amountString, setAmountString] = useState('')
     const [flow, setFlow] = useState<'IN' | 'OUT'>('OUT')
@@ -62,15 +67,19 @@ export function TransactionDrawer() {
     }
 
     const onSubmit = (values: z.infer<typeof transactionSchema>) => {
-        if (!values.contact_id) {
+        if (mode === 'business' && !values.contact_id) {
             toast.error('Please select a contact')
+            return
+        }
+        if (mode === 'personal' && !values.category_id) {
+            toast.error('Please select a category')
             return
         }
 
         addTransaction(
             {
                 ...values,
-                mode: 'BUSINESS',
+                mode: mode === 'business' ? 'BUSINESS' : 'PERSONAL',
                 flow: flow,
             },
             {
@@ -97,7 +106,9 @@ export function TransactionDrawer() {
             <DrawerContent>
                 <div className="mx-auto w-full max-w-md">
                     <DrawerHeader>
-                        <DrawerTitle className="text-center">New Transaction</DrawerTitle>
+                        <DrawerTitle className="text-center">
+                            New {mode === 'business' ? 'Transaction' : 'Entry'}
+                        </DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-8 overflow-y-auto max-h-[80vh]">
                         <div className="mb-6 flex justify-center gap-4">
@@ -110,7 +121,7 @@ export function TransactionDrawer() {
                                 }}
                             >
                                 <Minus className="mr-2 h-4 w-4" />
-                                Gave
+                                {mode === 'business' ? 'Gave' : 'Expense'}
                             </Button>
                             <Button
                                 variant={flow === 'IN' ? 'default' : 'outline'}
@@ -121,7 +132,7 @@ export function TransactionDrawer() {
                                 }}
                             >
                                 <Plus className="mr-2 h-4 w-4" />
-                                Got
+                                {mode === 'business' ? 'Got' : 'Income'}
                             </Button>
                         </div>
 
@@ -132,29 +143,55 @@ export function TransactionDrawer() {
                         </div>
 
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label>Contact</Label>
-                                <Select
-                                    onValueChange={(value) => form.setValue('contact_id', value)}
-                                >
-                                    <SelectTrigger>
-                                        <SelectValue placeholder="Select contact" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {contacts?.length === 0 ? (
-                                            <div className="p-2 text-sm text-muted-foreground text-center">
-                                                No contacts found
-                                            </div>
-                                        ) : (
-                                            contacts?.map((contact) => (
-                                                <SelectItem key={contact.id} value={contact.id}>
-                                                    {contact.name}
-                                                </SelectItem>
-                                            ))
-                                        )}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                            {mode === 'business' ? (
+                                <div className="space-y-2">
+                                    <Label>Contact</Label>
+                                    <Select
+                                        onValueChange={(value) => form.setValue('contact_id', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select contact" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {contacts?.length === 0 ? (
+                                                <div className="p-2 text-sm text-muted-foreground text-center">
+                                                    No contacts found
+                                                </div>
+                                            ) : (
+                                                contacts?.map((contact) => (
+                                                    <SelectItem key={contact.id} value={contact.id}>
+                                                        {contact.name}
+                                                    </SelectItem>
+                                                ))
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <Label>Category</Label>
+                                    <Select
+                                        onValueChange={(value) => form.setValue('category_id', value)}
+                                    >
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select category" />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {categories?.length === 0 ? (
+                                                <div className="p-2 text-sm text-muted-foreground text-center">
+                                                    No categories found
+                                                </div>
+                                            ) : (
+                                                categories?.map((cat) => (
+                                                    <SelectItem key={cat.id} value={cat.id}>
+                                                        {cat.name} {cat.icon}
+                                                    </SelectItem>
+                                                ))
+                                            )}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
 
                             <div className="space-y-2">
                                 <Label>Description</Label>
@@ -186,7 +223,7 @@ export function TransactionDrawer() {
 
                             <Button type="submit" className="w-full mt-4" disabled={isPending || !amountString}>
                                 {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save Transaction
+                                Save {mode === 'business' ? 'Transaction' : 'Entry'}
                             </Button>
                         </form>
                     </div>

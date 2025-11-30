@@ -1,36 +1,32 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
-interface BudgetCardProps {
+export interface BudgetCardProps {
     category: string
     spent: number
-    limit: number
+    limit: number | null
 }
 
-export function BudgetCard({ category, spent, limit }: BudgetCardProps) {
-    const percentage = Math.min((spent / limit) * 100, 100)
+export function BudgetRow({ category, spent, limit }: BudgetCardProps) {
+    const hasLimit = limit !== null && limit > 0
+    const percentage = hasLimit ? Math.min((spent / (limit as number)) * 100, 100) : 0
 
     let statusColor = 'bg-green-500'
     if (percentage > 85) statusColor = 'bg-red-500'
     else if (percentage > 50) statusColor = 'bg-yellow-500'
 
     return (
-        <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">{category}</CardTitle>
-                <span className="text-xs text-muted-foreground">
-                    ₹{spent.toLocaleString()} / ₹{limit.toLocaleString()}
+        <div className="space-y-1">
+            <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{category}</span>
+                <span className="text-muted-foreground">
+                    ₹{spent.toLocaleString()} {hasLimit ? `/ ₹${limit?.toLocaleString()}` : ''}
                 </span>
-            </CardHeader>
-            <CardContent>
-                <Progress value={percentage} className="h-2" indicatorClassName={statusColor} />
-                <p className="mt-2 text-xs text-muted-foreground">
-                    {percentage.toFixed(0)}% used
-                </p>
-            </CardContent>
-        </Card>
+            </div>
+            {hasLimit && <Progress value={percentage} className="h-2" indicatorClassName={statusColor} />}
+        </div>
     )
 }
