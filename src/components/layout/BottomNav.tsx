@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import {
@@ -15,6 +15,7 @@ import {
 
 export function BottomNav() {
     const pathname = usePathname()
+    const router = useRouter()
     const { mode, toggleMode } = useAppStore()
 
     const navItems = [
@@ -39,7 +40,10 @@ export function BottomNav() {
             label: 'Mode',
             href: '#',
             icon: mode === 'business' ? Briefcase : Wallet,
-            onClick: toggleMode,
+            onClick: () => {
+                toggleMode()
+                router.push('/dashboard')
+            },
         },
     ]
 

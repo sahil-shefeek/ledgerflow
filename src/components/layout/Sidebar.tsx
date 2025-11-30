@@ -96,7 +96,10 @@ export function Sidebar() {
                         variant="ghost"
                         size="sm"
                         className="w-full justify-start gap-2"
-                        onClick={toggleMode}
+                        onClick={() => {
+                            toggleMode()
+                            router.push('/dashboard')
+                        }}
                         title={mode === 'business' ? 'Switch to Personal' : 'Switch to Business'}
                     >
                         {mode === 'business' ? (
