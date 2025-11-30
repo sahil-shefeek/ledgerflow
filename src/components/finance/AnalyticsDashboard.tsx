@@ -67,7 +67,7 @@ export function AnalyticsDashboard() {
                                 {data.map((entry, index) => (
                                     <Cell
                                         key={`cell-${index}`}
-                                        fill={entry.category_color || COLORS[index % COLORS.length]}
+                                        fill={COLORS[index % COLORS.length]}
                                     />
                                 ))}
                             </Pie>
