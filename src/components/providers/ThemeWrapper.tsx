@@ -6,16 +6,18 @@ import { SplashScreen } from '@/components/ui/splash-screen';
 import { useRef } from 'react';
 
 export default function ThemeWrapper({ children }: { children: React.ReactNode }) {
-    const { mode, _hasHydrated } = useAppStore();
+    const { mode, _hasHydrated, themeSettings } = useAppStore();
     const [showSplash, setShowSplash] = useState(true);
     const [splashType, setSplashType] = useState<'initial' | 'switch'>('initial');
     const prevModeRef = useRef<string | null>(null);
+
+    // Get current settings or defaults
+    const currentSettings = themeSettings?.[mode] || { theme: mode === 'business' ? 'light' : 'dark', accent: mode === 'business' ? 'blue' : 'green' };
 
     // Handle initial hydration splash
     useEffect(() => {
         if (_hasHydrated) {
             // Keep splash visible for animation duration
-            // The SplashScreen component handles its own completion callback
         }
     }, [_hasHydrated]);
 
@@ -23,10 +25,8 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
     useEffect(() => {
         if (_hasHydrated) {
             if (prevModeRef.current === null) {
-                // First time we see hydrated state. Initialize ref.
                 prevModeRef.current = mode;
             } else if (prevModeRef.current !== mode) {
-                // Mode changed AFTER initialization. Trigger splash.
                 setSplashType('switch');
                 setShowSplash(true);
                 prevModeRef.current = mode;
@@ -35,12 +35,49 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
     }, [mode, _hasHydrated]);
 
     useEffect(() => {
-        // Apply the data-attribute to the body
         const body = document.querySelector('body');
         if (body) {
+            // Apply Theme (Light/Dark)
+            // We use 'data-mode' for Tailwind dark mode selector
+            // But wait, our tailwind config might be using 'class' strategy or 'data-mode'.
+            // Assuming 'class' strategy for next-themes usually, but here we are manual.
+            // Let's check globals.css later. For now, let's assume we toggle a class 'dark' if theme is dark.
+
+            // Actually, the previous code used `data-mode={mode}`. 
+            // Now we want `class="dark"` if currentSettings.theme is 'dark', else remove 'dark'.
+            // AND we might still want `data-mode` for other styling hooks if used.
+
+            if (currentSettings.theme === 'dark') {
+                body.classList.add('dark');
+            } else {
+                body.classList.remove('dark');
+            }
+
+            // Also keep data-mode for legacy or specific mode styling
             body.setAttribute('data-mode', mode);
+
+            // Apply Accent Color Variables
+            // We need to map accent names to HSL values or similar.
+            // For simplicity, let's assume we set a CSS variable --primary-color based on accent.
+            // But Tailwind uses --primary.
+            // We need to update --primary, --ring, etc.
+
+            const accentMap: Record<string, string> = {
+                blue: '221.2 83.2% 53.3%',
+                green: '142.1 76.2% 36.3%',
+                violet: '262.1 83.3% 57.8%',
+                orange: '24.6 95% 53.1%',
+                rose: '346.8 77.2% 49.8%',
+                slate: '215.4 16.3% 46.9%',
+            };
+
+            const accentHSL = accentMap[currentSettings.accent] || accentMap['blue'];
+            body.style.setProperty('--primary', `hsl(${accentHSL})`);
+            body.style.setProperty('--ring', `hsl(${accentHSL})`);
+            // We might need to adjust --primary-foreground if the accent is too light/dark, 
+            // but for these presets, white foreground usually works.
         }
-    }, [mode]);
+    }, [mode, currentSettings]);
 
     if (showSplash || !_hasHydrated) {
         return <SplashScreen variant={splashType} onComplete={() => setShowSplash(false)} />;

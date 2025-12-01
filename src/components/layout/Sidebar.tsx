@@ -36,12 +36,7 @@ export function Sidebar() {
             href: '/dashboard',
             icon: LayoutDashboard,
         },
-        {
-            label: 'Contacts',
-            href: '/dashboard/contacts',
-            icon: Users,
-            showIn: 'business',
-        },
+
         {
             label: 'Analytics',
             href: '/dashboard/analytics',

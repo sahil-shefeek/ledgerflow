@@ -53,14 +53,14 @@ export function SplashScreen({ onComplete, variant = 'initial' }: { onComplete?:
                     >
                         {mode === 'business' ? (
                             <div className="flex flex-col items-center gap-2">
-                                <div className="h-20 w-20 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                                <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                                     <Briefcase className="h-10 w-10" />
                                 </div>
                                 <span className="text-lg font-medium text-muted-foreground">Business Mode</span>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center gap-2">
-                                <div className="h-20 w-20 rounded-full bg-green-100 flex items-center justify-center text-green-600">
+                                <div className="h-20 w-20 rounded-full bg-primary/20 flex items-center justify-center text-primary">
                                     <Wallet className="h-10 w-10" />
                                 </div>
                                 <span className="text-lg font-medium text-muted-foreground">Personal Mode</span>

@@ -161,10 +161,16 @@ export function TransactionDrawer({
                     <div className="p-4 pb-8">
                         <Tabs defaultValue="OUT" className="w-full mb-4" onValueChange={(v) => setFlow(v as 'IN' | 'OUT')}>
                             <TabsList className="grid w-full grid-cols-2">
-                                <TabsTrigger value="OUT" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-900">
+                                <TabsTrigger
+                                    value="OUT"
+                                    className="data-[state=active]:bg-red-100 data-[state=active]:text-red-900 dark:data-[state=active]:bg-red-900/50 dark:data-[state=active]:text-red-100"
+                                >
                                     {mode === 'business' ? 'You Gave' : 'Expense'}
                                 </TabsTrigger>
-                                <TabsTrigger value="IN" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-900">
+                                <TabsTrigger
+                                    value="IN"
+                                    className="data-[state=active]:bg-green-100 data-[state=active]:text-green-900 dark:data-[state=active]:bg-green-900/50 dark:data-[state=active]:text-green-100"
+                                >
                                     {mode === 'business' ? 'You Got' : 'Income'}
                                 </TabsTrigger>
                             </TabsList>
