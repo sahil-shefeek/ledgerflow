@@ -3,11 +3,13 @@ import { useAppStore } from '@/store/useAppStore';
 import { useEffect, useState } from 'react';
 
 import { SplashScreen } from '@/components/ui/splash-screen';
+import { useRef } from 'react';
 
 export default function ThemeWrapper({ children }: { children: React.ReactNode }) {
     const { mode, _hasHydrated } = useAppStore();
     const [showSplash, setShowSplash] = useState(true);
     const [splashType, setSplashType] = useState<'initial' | 'switch'>('initial');
+    const prevModeRef = useRef<string | null>(null);
 
     // Handle initial hydration splash
     useEffect(() => {
@@ -20,10 +22,17 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
     // Handle mode switch splash
     useEffect(() => {
         if (_hasHydrated) {
-            setSplashType('switch');
-            setShowSplash(true);
+            if (prevModeRef.current === null) {
+                // First time we see hydrated state. Initialize ref.
+                prevModeRef.current = mode;
+            } else if (prevModeRef.current !== mode) {
+                // Mode changed AFTER initialization. Trigger splash.
+                setSplashType('switch');
+                setShowSplash(true);
+                prevModeRef.current = mode;
+            }
         }
-    }, [mode]);
+    }, [mode, _hasHydrated]);
 
     useEffect(() => {
         // Apply the data-attribute to the body
