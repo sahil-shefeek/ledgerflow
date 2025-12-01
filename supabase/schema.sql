@@ -11,13 +11,22 @@ create table public.profiles (
   created_at timestamptz default now()
 );
 
--- 2. Table: contacts (The "Khata" entities)
-create table public.contacts (
+-- 2. Table: businesses (For Multiple Khatabooks)
+create table public.businesses (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
   name text not null,
+  created_at timestamptz default now()
+);
+
+-- 3. Table: contacts (The "Khata" entities)
+create table public.contacts (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  business_id uuid references public.businesses(id) on delete cascade,
+  name text not null,
   phone text,
-  type text check (type in ('CUSTOMER', 'VENDOR')),
+  type text check (type in ('CUSTOMER', 'SUPPLIER', 'OTHER')) default 'CUSTOMER',
   net_balance numeric default 0.00,
   last_transaction_at timestamptz default now(),
   created_at timestamptz default now()
@@ -25,8 +34,9 @@ create table public.contacts (
 
 -- Index for faster lookups
 create index contacts_user_id_idx on public.contacts(user_id);
+create index contacts_business_id_idx on public.contacts(business_id);
 
--- 3. Table: categories (For Personal Expense tracking)
+-- 4. Table: categories (For Personal Expense tracking)
 create table public.categories (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
@@ -37,10 +47,11 @@ create table public.categories (
   created_at timestamptz default now()
 );
 
--- 4. Table: transactions (The Single Source of Truth)
+-- 5. Table: transactions (The Single Source of Truth)
 create table public.transactions (
   id uuid default uuid_generate_v4() primary key,
   user_id uuid references public.profiles(id) on delete cascade not null,
+  business_id uuid references public.businesses(id) on delete cascade,
   amount numeric not null check (amount > 0),
   flow text check (flow in ('IN', 'OUT')),
   mode text check (mode in ('BUSINESS', 'PERSONAL')),
@@ -242,4 +253,119 @@ $$;
 create trigger on_auth_user_created_seed_categories
   after insert on auth.users
   for each row execute procedure public.seed_default_categories();
+
+-- 6. Table: accounts (For Personal Finance - Cash, Bank, Wallet)
+create table public.accounts (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  name text not null,
+  type text check (type in ('CASH', 'BANK', 'WALLET', 'OTHER')),
+  balance numeric default 0.00,
+  is_default boolean default false,
+  created_at timestamptz default now()
+);
+
+-- Add account_id to transactions
+alter table public.transactions 
+add column account_id uuid references public.accounts(id) on delete set null;
+
+alter table public.transactions
+add column due_date timestamptz;
+
+-- RLS for Accounts
+alter table public.accounts enable row level security;
+
+create policy "Users can view own accounts" on public.accounts
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own accounts" on public.accounts
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update own accounts" on public.accounts
+  for update using (auth.uid() = user_id);
+
+create policy "Users can delete own accounts" on public.accounts
+  for delete using (auth.uid() = user_id);
+
+-- Function to auto-update account balance
+create or replace function update_account_balance()
+returns trigger as $$
+begin
+  -- Logic for INSERT
+  if (TG_OP = 'INSERT' AND NEW.mode = 'PERSONAL' AND NEW.account_id IS NOT NULL) then
+    update accounts
+    set 
+      balance = balance + (case when NEW.flow = 'IN' then NEW.amount else -NEW.amount end)
+    where id = NEW.account_id;
+  end if;
+
+  -- Logic for DELETE (Reverse the math)
+  if (TG_OP = 'DELETE' AND OLD.mode = 'PERSONAL' AND OLD.account_id IS NOT NULL) then
+    update accounts
+    set balance = balance - (case when OLD.flow = 'IN' then OLD.amount else -OLD.amount end)
+    where id = OLD.account_id;
+  end if;
+  
+  return null;
+end;
+$$ language plpgsql;
+
+-- Attach Trigger to Transactions Table for Accounts
+create trigger trigger_update_account_balance
+after insert or delete on transactions
+for each row
+execute function update_account_balance();
+
+-- Seed default accounts for new users
+create or replace function public.seed_default_accounts()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.accounts (user_id, name, type, balance, is_default)
+  values
+    (new.id, 'Cash', 'CASH', 0, true),
+    (new.id, 'Bank Account', 'BANK', 0, false);
+  return new;
+end;
+$$;
+
+-- Attach trigger to auth.users to seed accounts on signup
+  for each row execute procedure public.seed_default_accounts();
+
+-- 7. Table: businesses (For Multiple Khatabooks)
+
+
+-- RLS for Businesses
+alter table public.businesses enable row level security;
+
+create policy "Users can view own businesses" on public.businesses
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own businesses" on public.businesses
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update own businesses" on public.businesses
+  for update using (auth.uid() = user_id);
+
+create policy "Users can delete own businesses" on public.businesses
+  for delete using (auth.uid() = user_id);
+
+-- Seed default business for new users
+create or replace function public.seed_default_business()
+returns trigger
+language plpgsql
+security definer set search_path = public
+as $$
+begin
+  insert into public.businesses (user_id, name)
+  values (new.id, 'My Business');
+  return new;
+end;
+$$;
+
+create trigger on_auth_user_created_seed_business
+  after insert on auth.users
+  for each row execute procedure public.seed_default_business();
 

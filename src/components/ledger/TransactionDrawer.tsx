@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
+import { useAccounts } from '@/hooks/useAccounts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -23,209 +24,309 @@ import {
     SelectValue,
 } from '@/components/ui/select'
 
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+
+import { format } from 'date-fns'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
+
 const transactionSchema = z.object({
-    amount: z.number().min(1, 'Amount must be greater than 0'),
+    amount: z.coerce.number().min(1, 'Amount must be greater than 0'),
     description: z.string().optional(),
     contact_id: z.string().optional(),
     category_id: z.string().optional(),
-    date: z.date(),
+    account_id: z.string().optional(),
+    date: z.coerce.date(),
+    due_date: z.coerce.date().optional(),
     flow: z.enum(['IN', 'OUT']),
 })
 
-export function TransactionDrawer() {
-    const [open, setOpen] = useState(false)
+export function TransactionDrawer({
+    open: controlledOpen,
+    onOpenChange: setControlledOpen,
+    initialData
+}: {
+    open?: boolean
+    onOpenChange?: (open: boolean) => void
+    initialData?: any
+} = {}) {
     const { mode } = useAppStore()
-    const { mutate: addTransaction, isPending } = useAddTransaction()
     const { data: contacts } = useContacts()
-    const { data: categories } = useBudgets()
+    const { data: budgets } = useBudgets() // We use budgets to get categories
+    const { data: accounts } = useAccounts()
+    const { mutate: addTransaction, isPending } = useAddTransaction()
+    const [internalOpen, setInternalOpen] = useState(false)
 
-    const [amountString, setAmountString] = useState('')
+    const open = controlledOpen ?? internalOpen
+    const setOpen = setControlledOpen ?? setInternalOpen
+
     const [flow, setFlow] = useState<'IN' | 'OUT'>('OUT')
 
-    const form = useForm<z.infer<typeof transactionSchema>>({
+    const form = useForm({
         resolver: zodResolver(transactionSchema),
         defaultValues: {
-            amount: 0,
+            amount: '' as any,
             description: '',
             date: new Date(),
-            flow: 'OUT',
+            flow: 'OUT' as 'IN' | 'OUT',
         },
     })
 
-    const handleNumberClick = (num: string) => {
-        if (num === '.' && amountString.includes('.')) return
-        setAmountString((prev) => prev + num)
-        form.setValue('amount', parseFloat((amountString + num)))
-    }
+    // Effect to populate form when initialData changes
+    useEffect(() => {
+        if (initialData) {
+            form.reset({
+                amount: initialData.amount,
+                description: initialData.description || '',
+                date: new Date(initialData.date),
+                flow: initialData.flow,
+                contact_id: initialData.contact_id,
+                category_id: initialData.category_id,
+                account_id: initialData.account_id,
+            })
+            setFlow(initialData.flow)
+        }
+    }, [initialData, form])
 
-    const handleBackspace = () => {
-        setAmountString((prev) => {
-            const newStr = prev.slice(0, -1)
-            form.setValue('amount', newStr ? parseFloat(newStr) : 0)
-            return newStr
-        })
-    }
-
-    const onSubmit = (values: z.infer<typeof transactionSchema>) => {
+    function onSubmit(values: any) {
         if (mode === 'business' && !values.contact_id) {
             toast.error('Please select a contact')
             return
         }
-        if (mode === 'personal' && !values.category_id) {
+        if (mode === 'personal' && !values.category_id && flow === 'OUT') {
             toast.error('Please select a category')
             return
         }
+        if (mode === 'personal' && !values.account_id) {
+            toast.error('Please select an account')
+            return
+        }
 
-        addTransaction(
-            {
-                ...values,
-                mode: mode === 'business' ? 'BUSINESS' : 'PERSONAL',
-                flow: flow,
+        const transactionData = {
+            ...values,
+            mode: mode === 'business' ? 'BUSINESS' : 'PERSONAL',
+            flow: flow,
+        }
+
+        const options = {
+            onSuccess: () => {
+                setOpen(false)
+                form.reset({
+                    amount: '' as any,
+                    description: '',
+                    date: new Date(),
+                    flow: 'OUT',
+                })
+                setFlow('OUT') // Reset flow default
+                toast.success(initialData?.id ? 'Transaction updated' : 'Transaction saved')
             },
-            {
-                onSuccess: () => {
-                    setOpen(false)
-                    setAmountString('')
-                    form.reset()
-                    toast.success('Transaction saved')
-                },
-                onError: (error) => {
-                    toast.error(`Failed to save: ${error.message}`)
-                }
+            onError: (error: any) => {
+                toast.error(`Failed to save: ${error.message}`)
             }
-        )
+        }
+
+        if (initialData?.id) {
+            updateTransaction({ ...transactionData, id: initialData.id }, options)
+        } else {
+            addTransaction(transactionData, options)
+        }
     }
 
     return (
         <Drawer open={open} onOpenChange={setOpen}>
             <DrawerTrigger asChild>
-                <Button className="fixed bottom-20 right-4 h-14 w-14 rounded-full shadow-lg md:bottom-8 md:right-8">
+                <Button
+                    size="icon"
+                    className="fixed bottom-20 md:bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+                >
                     <Plus className="h-6 w-6" />
                 </Button>
             </DrawerTrigger>
             <DrawerContent>
-                <div className="mx-auto w-full max-w-md">
+                <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle className="text-center">
-                            New {mode === 'business' ? 'Transaction' : 'Entry'}
+                        <DrawerTitle>
+                            {mode === 'business' ? 'New Transaction' : 'Add Expense / Income'}
                         </DrawerTitle>
                     </DrawerHeader>
-                    <div className="p-4 pb-8 overflow-y-auto max-h-[80vh]">
-                        <div className="mb-6 flex justify-center gap-4">
-                            <Button
-                                variant={flow === 'OUT' ? 'destructive' : 'outline'}
-                                className={cn('w-32', flow === 'OUT' && 'bg-red-600 hover:bg-red-700')}
-                                onClick={() => {
-                                    setFlow('OUT')
-                                    form.setValue('flow', 'OUT')
-                                }}
-                            >
-                                <Minus className="mr-2 h-4 w-4" />
-                                {mode === 'business' ? 'Gave' : 'Expense'}
-                            </Button>
-                            <Button
-                                variant={flow === 'IN' ? 'default' : 'outline'}
-                                className={cn('w-32', flow === 'IN' && 'bg-green-600 hover:bg-green-700')}
-                                onClick={() => {
-                                    setFlow('IN')
-                                    form.setValue('flow', 'IN')
-                                }}
-                            >
-                                <Plus className="mr-2 h-4 w-4" />
-                                {mode === 'business' ? 'Got' : 'Income'}
-                            </Button>
-                        </div>
+                    <div className="p-4 pb-8">
+                        <Tabs defaultValue="OUT" className="w-full mb-4" onValueChange={(v) => setFlow(v as 'IN' | 'OUT')}>
+                            <TabsList className="grid w-full grid-cols-2">
+                                <TabsTrigger value="OUT" className="data-[state=active]:bg-red-100 data-[state=active]:text-red-900">
+                                    {mode === 'business' ? 'You Gave' : 'Expense'}
+                                </TabsTrigger>
+                                <TabsTrigger value="IN" className="data-[state=active]:bg-green-100 data-[state=active]:text-green-900">
+                                    {mode === 'business' ? 'You Got' : 'Income'}
+                                </TabsTrigger>
+                            </TabsList>
+                        </Tabs>
 
-                        <div className="mb-8 text-center">
-                            <div className={cn("text-4xl font-bold", flow === 'OUT' ? 'text-red-600' : 'text-green-600')}>
-                                ₹{amountString || '0'}
-                            </div>
-                        </div>
+                        <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="amount"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Amount (₹)</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="0.00"
+                                                    {...field}
+                                                    value={field.value as number}
+                                                    onChange={e => field.onChange(e.target.value)}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            {mode === 'business' ? (
-                                <div className="space-y-2">
-                                    <Label>Contact</Label>
-                                    <Select
-                                        onValueChange={(value) => form.setValue('contact_id', value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select contact" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {contacts?.length === 0 ? (
-                                                <div className="p-2 text-sm text-muted-foreground text-center">
-                                                    No contacts found
-                                                </div>
-                                            ) : (
-                                                contacts?.map((contact) => (
-                                                    <SelectItem key={contact.id} value={contact.id}>
-                                                        {contact.name}
-                                                    </SelectItem>
-                                                ))
+                                {mode === 'business' ? (
+                                    <FormField
+                                        control={form.control}
+                                        name="contact_id"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Contact</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select contact" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {contacts?.map((contact) => (
+                                                            <SelectItem key={contact.id} value={contact.id}>
+                                                                {contact.name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                ) : (
+                                    <>
+                                        {flow === 'OUT' && (
+                                            <FormField
+                                                control={form.control}
+                                                name="category_id"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Category</FormLabel>
+                                                        <FormControl>
+                                                            <ToggleGroup
+                                                                type="single"
+                                                                value={field.value}
+                                                                onValueChange={field.onChange}
+                                                                className="justify-start flex-wrap gap-2"
+                                                            >
+                                                                {budgets?.map((cat) => (
+                                                                    <ToggleGroupItem
+                                                                        key={cat.id}
+                                                                        value={cat.id}
+                                                                        aria-label={cat.name}
+                                                                        className="h-9 px-3 border border-input data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                                                    >
+                                                                        <span className="mr-2">{cat.icon}</span>
+                                                                        {cat.name}
+                                                                    </ToggleGroupItem>
+                                                                ))}
+                                                            </ToggleGroup>
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        )}
+                                        <FormField
+                                            control={form.control}
+                                            name="account_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Account</FormLabel>
+                                                    <FormControl>
+                                                        <ToggleGroup
+                                                            type="single"
+                                                            value={field.value}
+                                                            onValueChange={field.onChange}
+                                                            className="justify-start flex-wrap gap-2"
+                                                        >
+                                                            {accounts?.map((acc) => (
+                                                                <ToggleGroupItem
+                                                                    key={acc.id}
+                                                                    value={acc.id}
+                                                                    aria-label={acc.name}
+                                                                    className="h-9 px-3 border border-input data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                                                                >
+                                                                    {acc.name} (₹{acc.balance})
+                                                                </ToggleGroupItem>
+                                                            ))}
+                                                        </ToggleGroup>
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
                                             )}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <Label>Category</Label>
-                                    <Select
-                                        onValueChange={(value) => form.setValue('category_id', value)}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            {categories?.length === 0 ? (
-                                                <div className="p-2 text-sm text-muted-foreground text-center">
-                                                    No categories found
-                                                </div>
-                                            ) : (
-                                                categories?.map((cat) => (
-                                                    <SelectItem key={cat.id} value={cat.id}>
-                                                        {cat.name} {cat.icon}
-                                                    </SelectItem>
-                                                ))
-                                            )}
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            )}
+                                        />
+                                    </>
+                                )}
 
-                            <div className="space-y-2">
-                                <Label>Description</Label>
-                                <Input {...form.register('description')} placeholder="Note (optional)" />
-                            </div>
+                                <FormField
+                                    control={form.control}
+                                    name="date"
+                                    render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                            <FormLabel>Date & Time</FormLabel>
+                                            <DateTimePicker
+                                                date={field.value as Date | undefined}
+                                                setDate={field.onChange}
+                                            />
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
 
-                            {/* Number Pad */}
-                            <div className="grid grid-cols-3 gap-2 mt-4">
-                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, '.', 0].map((num) => (
-                                    <Button
-                                        key={num}
-                                        type="button"
-                                        variant="outline"
-                                        className="h-12 text-lg"
-                                        onClick={() => handleNumberClick(num.toString())}
-                                    >
-                                        {num}
-                                    </Button>
-                                ))}
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    className="h-12"
-                                    onClick={handleBackspace}
-                                >
-                                    ⌫
+                                {mode === 'business' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="due_date"
+                                        render={({ field }) => (
+                                            <FormItem className="flex flex-col">
+                                                <FormLabel>Due Date (Optional)</FormLabel>
+                                                <DateTimePicker
+                                                    date={field.value as Date | undefined}
+                                                    setDate={field.onChange}
+                                                />
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
+
+                                <FormField
+                                    control={form.control}
+                                    name="description"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Description (Optional)</FormLabel>
+                                            <FormControl>
+                                                <Input placeholder="Dinner, Taxi, etc." {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <Button type="submit" className="w-full" disabled={isPending}>
+                                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    Save Transaction
                                 </Button>
-                            </div>
-
-                            <Button type="submit" className="w-full mt-4" disabled={isPending || !amountString}>
-                                {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                Save {mode === 'business' ? 'Transaction' : 'Entry'}
-                            </Button>
-                        </form>
+                            </form>
+                        </Form>
                     </div>
                 </div>
             </DrawerContent>

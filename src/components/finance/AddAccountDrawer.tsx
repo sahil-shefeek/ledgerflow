@@ -7,56 +7,53 @@ import { z } from 'zod'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useAddContact } from '@/hooks/useContacts'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { useAddAccount } from '@/hooks/useAddAccount'
 import { Loader2, Plus } from 'lucide-react'
 
-const contactSchema = z.object({
+const accountSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
-    phone: z.string().optional(),
-    type: z.enum(['CUSTOMER', 'SUPPLIER', 'OTHER']),
+    type: z.enum(['CASH', 'BANK', 'WALLET', 'OTHER']),
+    balance: z.coerce.number(),
 })
 
-interface AddContactDrawerProps {
-    children?: React.ReactNode
-    open?: boolean
-    onOpenChange?: (open: boolean) => void
-}
+export function AddAccountDrawer({ children }: { children?: React.ReactNode }) {
+    const [open, setOpen] = useState(false)
+    const { mutate: addAccount, isPending } = useAddAccount()
 
-export function AddContactDrawer({ children, open, onOpenChange }: AddContactDrawerProps) {
-    const [internalOpen, setInternalOpen] = useState(false)
-    const isControlled = open !== undefined
-    const isOpen = isControlled ? open : internalOpen
-    const setIsOpen = isControlled ? onOpenChange : setInternalOpen
-
-    const { mutate: addContact, isPending } = useAddContact()
-
-    const form = useForm<z.infer<typeof contactSchema>>({
-        resolver: zodResolver(contactSchema),
+    const form = useForm({
+        resolver: zodResolver(accountSchema),
         defaultValues: {
             name: '',
-            phone: '',
-            type: 'CUSTOMER',
+            type: 'CASH' as const,
+            balance: 0,
         },
     })
 
-    function onSubmit(values: z.infer<typeof contactSchema>) {
-        addContact(values, {
+    function onSubmit(values: z.infer<typeof accountSchema>) {
+        addAccount(values, {
             onSuccess: () => {
-                setIsOpen?.(false)
+                setOpen(false)
                 form.reset()
             },
         })
     }
 
     return (
-        <Drawer open={isOpen} onOpenChange={setIsOpen}>
-            {children && <DrawerTrigger asChild>{children}</DrawerTrigger>}
+        <Drawer open={open} onOpenChange={setOpen}>
+            <DrawerTrigger asChild>
+                {children || (
+                    <Button size="sm" variant="outline" className="w-full">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Account
+                    </Button>
+                )}
+            </DrawerTrigger>
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle>Add New Contact</DrawerTitle>
+                        <DrawerTitle>Add Account</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-8">
                         <Form {...form}>
@@ -66,22 +63,9 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                                     name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Name</FormLabel>
+                                            <FormLabel>Account Name</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="John Doe" {...field} />
-                                            </FormControl>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
-                                <FormField
-                                    control={form.control}
-                                    name="phone"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Phone (Optional)</FormLabel>
-                                            <FormControl>
-                                                <Input placeholder="+91..." {...field} />
+                                                <Input placeholder="HDFC Bank" {...field} />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>
@@ -96,12 +80,13 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                                             <Select onValueChange={field.onChange} defaultValue={field.value}>
                                                 <FormControl>
                                                     <SelectTrigger>
-                                                        <SelectValue placeholder="Select type" />
+                                                        <SelectValue placeholder="Select account type" />
                                                     </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                    <SelectItem value="CUSTOMER">Customer</SelectItem>
-                                                    <SelectItem value="SUPPLIER">Supplier</SelectItem>
+                                                    <SelectItem value="CASH">Cash</SelectItem>
+                                                    <SelectItem value="BANK">Bank</SelectItem>
+                                                    <SelectItem value="WALLET">Wallet</SelectItem>
                                                     <SelectItem value="OTHER">Other</SelectItem>
                                                 </SelectContent>
                                             </Select>
@@ -109,9 +94,28 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                                         </FormItem>
                                     )}
                                 />
+                                <FormField
+                                    control={form.control}
+                                    name="balance"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Initial Balance (₹)</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    type="number"
+                                                    placeholder="0"
+                                                    {...field}
+                                                    value={field.value as number}
+                                                    onChange={e => field.onChange(e.target.value)}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <Button type="submit" className="w-full" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Add Contact
+                                    Create Account
                                 </Button>
                             </form>
                         </Form>

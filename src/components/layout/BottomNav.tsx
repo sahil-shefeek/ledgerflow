@@ -13,10 +13,11 @@ import {
     Wallet,
 } from 'lucide-react'
 
+import { MobileSidebar } from './MobileSidebar'
+
 export function BottomNav() {
     const pathname = usePathname()
-    const router = useRouter()
-    const { mode, toggleMode } = useAppStore()
+    const { mode } = useAppStore()
 
     const navItems = [
         {
@@ -24,26 +25,12 @@ export function BottomNav() {
             href: '/dashboard',
             icon: LayoutDashboard,
         },
-        {
-            label: 'Contacts',
-            href: '/dashboard/contacts',
-            icon: Users,
-            showIn: 'business',
-        },
+
         {
             label: 'Analytics',
             href: '/dashboard/analytics',
             icon: PieChart,
             showIn: 'personal',
-        },
-        {
-            label: 'Mode',
-            href: '#',
-            icon: mode === 'business' ? Briefcase : Wallet,
-            onClick: () => {
-                toggleMode()
-                router.push('/dashboard')
-            },
         },
     ]
 
@@ -57,10 +44,9 @@ export function BottomNav() {
                         <Link
                             key={item.label}
                             href={item.href}
-                            onClick={item.onClick}
                             className={cn(
                                 'flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors hover:bg-muted/50',
-                                pathname === item.href && !item.onClick
+                                pathname === item.href
                                     ? 'text-primary'
                                     : 'text-muted-foreground'
                             )}

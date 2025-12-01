@@ -2,30 +2,26 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/utils/supabase/client'
 import { toast } from 'sonner'
 
-interface AddContactParams {
+interface AddAccountParams {
     name: string
-    phone?: string
-    type: 'CUSTOMER' | 'VENDOR'
+    type: 'CASH' | 'BANK' | 'WALLET' | 'OTHER'
+    balance: number
 }
 
-export function useAddContact() {
+export function useAddAccount() {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async (params: AddContactParams) => {
+        mutationFn: async (newAccount: AddAccountParams) => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('User not authenticated')
 
             const { data, error } = await supabase
-                .from('contacts')
+                .from('accounts')
                 .insert({
-                    name: params.name,
-                    phone: params.phone,
-                    type: params.type,
+                    ...newAccount,
                     user_id: user.id,
-                    net_balance: 0,
-                    last_transaction_at: new Date().toISOString(),
                 })
                 .select()
                 .single()
@@ -34,11 +30,12 @@ export function useAddContact() {
             return data
         },
         onSuccess: () => {
-            toast.success('Contact added successfully')
-            queryClient.invalidateQueries({ queryKey: ['contacts'] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            toast.success('Account created')
         },
         onError: (error) => {
-            toast.error(`Failed to add contact: ${error.message}`)
+            toast.error('Failed to create account')
+            console.error(error)
         },
     })
 }

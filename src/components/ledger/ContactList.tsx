@@ -1,16 +1,23 @@
-'use client'
-
 import { useContacts } from '@/hooks/useContacts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { AddContactDrawer } from './AddContactDrawer'
+import { Input } from '@/components/ui/input'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Users } from 'lucide-react'
 
 export function ContactList() {
     const { data: contacts, isLoading, error } = useContacts()
+    const [searchQuery, setSearchQuery] = useState('')
+    const [filter, setFilter] = useState('ALL')
+    const router = useRouter()
 
     if (isLoading) {
         return (
@@ -28,28 +35,64 @@ export function ContactList() {
         )
     }
 
+    const filteredContacts = contacts?.filter(contact => {
+        const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+        const matchesFilter =
+            filter === 'ALL' ? true :
+                contact.type === filter
+
+        return matchesSearch && matchesFilter
+    })
+
     return (
-        <Card className="h-full">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-lg font-medium">Contacts</CardTitle>
-                <AddContactDrawer>
-                    <Button size="sm" variant="outline">
-                        <Plus className="mr-2 h-4 w-4" />
-                        Add New
-                    </Button>
-                </AddContactDrawer>
+        <Card className="h-full border-0 shadow-none">
+            <CardHeader className="px-4 pb-2 space-y-4">
+                <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl font-bold">Contacts</CardTitle>
+                    <AddContactDrawer>
+                        <Button size="sm">
+                            <Plus className="mr-2 h-4 w-4" />
+                            Add New
+                        </Button>
+                    </AddContactDrawer>
+                </div>
+
+                <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search contacts..."
+                        className="pl-8"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <ToggleGroup type="single" value={filter} onValueChange={(val) => val && setFilter(val)} className="justify-start w-full">
+                    <ToggleGroupItem value="ALL" className="flex-1">All</ToggleGroupItem>
+                    <ToggleGroupItem value="CUSTOMER" className="flex-1">Customers</ToggleGroupItem>
+                    <ToggleGroupItem value="SUPPLIER" className="flex-1">Suppliers</ToggleGroupItem>
+                </ToggleGroup>
             </CardHeader>
             <CardContent className="p-0">
                 <div className="divide-y">
-                    {contacts?.length === 0 ? (
-                        <div className="p-4 text-center text-sm text-muted-foreground">
-                            No contacts found. Add one to start.
-                        </div>
+                    {filteredContacts?.length === 0 ? (
+                        <Empty className="py-12">
+                            <EmptyHeader>
+                                <EmptyMedia variant="icon">
+                                    <Users />
+                                </EmptyMedia>
+                                <EmptyTitle>No contacts found</EmptyTitle>
+                                <EmptyDescription>
+                                    Try adjusting your search or filters.
+                                </EmptyDescription>
+                            </EmptyHeader>
+                        </Empty>
                     ) : (
-                        contacts?.map((contact) => (
+                        filteredContacts?.map((contact) => (
                             <div
                                 key={contact.id}
                                 className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                                onClick={() => router.push(`/dashboard/ledger/${contact.id}`)}
                             >
                                 <div className="flex items-center gap-3">
                                     <Avatar>

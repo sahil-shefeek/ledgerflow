@@ -21,7 +21,7 @@ export function AddGoalDrawer({ children }: { children?: React.ReactNode }) {
     const [open, setOpen] = useState(false)
     const { mutate: addGoal, isPending } = useAddGoal()
 
-    const form = useForm<z.infer<typeof goalSchema>>({
+    const form = useForm({
         resolver: zodResolver(goalSchema),
         defaultValues: {
             name: '',
@@ -81,6 +81,7 @@ export function AddGoalDrawer({ children }: { children?: React.ReactNode }) {
                                                     type="number"
                                                     placeholder="50000"
                                                     {...field}
+                                                    value={field.value as number}
                                                     onChange={e => field.onChange(e.target.value)}
                                                 />
                                             </FormControl>
@@ -98,7 +99,7 @@ export function AddGoalDrawer({ children }: { children?: React.ReactNode }) {
                                                 <Input
                                                     type="date"
                                                     {...field}
-                                                    value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : field.value}
+                                                    value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                                                     onChange={e => field.onChange(new Date(e.target.value))}
                                                 />
                                             </FormControl>

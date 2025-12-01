@@ -61,6 +61,7 @@ export function AnalyticsDashboard() {
                                 innerRadius={60}
                                 outerRadius={80}
                                 paddingAngle={5}
+                                cornerRadius={5}
                                 dataKey="total_spent"
                                 nameKey="category_name"
                             >

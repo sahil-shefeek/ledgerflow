@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/utils/supabase/client'
+import { useAppStore } from '@/store/useAppStore'
 import { Transaction } from './useTransactions'
 import { Contact } from './useContacts'
 import { toast } from 'sonner'
@@ -10,25 +11,34 @@ interface AddTransactionParams {
     mode: 'BUSINESS' | 'PERSONAL'
     contact_id?: string
     category_id?: string
+    account_id?: string
     date: Date
+    due_date?: Date
     description?: string
 }
 
 export function useAddTransaction() {
     const supabase = createClient()
     const queryClient = useQueryClient()
+    const { currentBusinessId } = useAppStore()
 
     return useMutation({
         mutationFn: async (newTransaction: AddTransactionParams) => {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('User not authenticated')
 
+            if (newTransaction.mode === 'BUSINESS' && !currentBusinessId) {
+                throw new Error('No business selected')
+            }
+
             const { data, error } = await supabase
                 .from('transactions')
                 .insert({
                     ...newTransaction,
                     user_id: user.id,
+                    business_id: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
                     date: newTransaction.date.toISOString(),
+                    due_date: newTransaction.due_date?.toISOString(),
                 })
                 .select()
                 .single()
@@ -40,23 +50,25 @@ export function useAddTransaction() {
             // Cancel any outgoing refetches
             await queryClient.cancelQueries({ queryKey: ['transactions'] })
             await queryClient.cancelQueries({ queryKey: ['contacts'] })
+            await queryClient.cancelQueries({ queryKey: ['personal-transactions'] })
+            await queryClient.cancelQueries({ queryKey: ['accounts'] })
+            await queryClient.cancelQueries({ queryKey: ['budgets'] })
 
             // Snapshot the previous value
             const previousTransactions = queryClient.getQueryData(['transactions', newTransaction.contact_id || 'all'])
             const previousContacts = queryClient.getQueryData(['contacts'])
 
-            // Optimistically update transactions
+            // Optimistically update transactions (Business Mode)
             if (newTransaction.contact_id) {
                 queryClient.setQueryData(['transactions', newTransaction.contact_id], (old: any) => {
                     const optimisticTransaction = {
                         id: 'temp-' + Date.now(),
                         ...newTransaction,
                         date: newTransaction.date.toISOString(),
-                        contacts: { name: 'Loading...', phone: null }, // We might need to fetch contact name or pass it
+                        contacts: { name: 'Loading...', phone: null },
                     }
                     if (!old) return { pages: [[optimisticTransaction]], pageParams: [0] }
 
-                    // Assuming infinite query structure
                     const newPages = [...old.pages]
                     newPages[0] = [optimisticTransaction, ...newPages[0]]
                     return { ...old, pages: newPages }
@@ -95,12 +107,16 @@ export function useAddTransaction() {
                 queryClient.setQueryData(['contacts'], context.previousContacts)
             }
         },
-        onSettled: (data, error, variables) => {
+        onSettled: () => {
+            // Invalidate all relevant queries to ensure fresh data
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['contacts'] })
-            if (!error) {
-                toast.success('Transaction saved')
-            }
+            queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
+            queryClient.invalidateQueries({ queryKey: ['analytics'] })
+
+            toast.success('Transaction saved')
         },
     })
 }

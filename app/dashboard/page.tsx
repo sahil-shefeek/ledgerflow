@@ -14,16 +14,36 @@ import { AddGoalDrawer } from '@/components/finance/AddGoalDrawer'
 import { Button } from '@/components/ui/button'
 import { BusinessSummary } from '@/components/ledger/BusinessSummary'
 import { PersonalTransactionList } from '@/components/finance/PersonalTransactionList'
+import { AccountsList } from '@/components/finance/AccountsList'
 import { Plus } from 'lucide-react'
+
+import { MobileSidebar } from '@/components/layout/MobileSidebar'
+import { BusinessSwitcher } from '@/components/layout/BusinessSwitcher'
 
 export default function DashboardPage() {
     const { mode } = useAppStore()
 
     return (
         <div className="space-y-4">
-            <h1 className="text-2xl font-bold tracking-tight">
-                {mode === 'business' ? 'Business Ledger' : 'Personal Finance'}
-            </h1>
+
+
+            <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <MobileSidebar />
+                    {mode === 'business' ? (
+                        <BusinessSwitcher />
+                    ) : (
+                        <h1 className="text-2xl font-bold tracking-tight">
+                            Personal Finance
+                        </h1>
+                    )}
+                </div>
+            </div>
+            {mode === 'personal' && (
+                <div className="text-muted-foreground">
+                    Welcome back! Here's your financial overview.
+                </div>
+            )}
             {mode === 'business' ? (
                 <>
                     <BusinessSummary />
@@ -31,20 +51,22 @@ export default function DashboardPage() {
                 </>
             ) : (
                 <div className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                        <div className="col-span-4 space-y-4">
+                    <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+                        <div className="lg:col-span-4 space-y-4 flex flex-col">
                             <AnalyticsDashboard />
                             <PersonalTransactionList />
                         </div>
-                        <div className="col-span-3 space-y-4">
+                        <div className="lg:col-span-3 space-y-4">
+                            <AccountsList />
                             <BudgetsList />
                             <GoalsList />
                         </div>
                     </div>
                 </div>
-            )}
+            )
+            }
             <TransactionDrawer />
-        </div>
+        </div >
     )
 }
 
