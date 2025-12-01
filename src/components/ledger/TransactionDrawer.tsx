@@ -7,6 +7,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { toast } from 'sonner'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
+import { useUpdateTransaction } from '@/hooks/useUpdateTransaction'
 import { useAccounts } from '@/hooks/useAccounts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -55,7 +56,9 @@ export function TransactionDrawer({
     const { data: contacts } = useContacts()
     const { data: budgets } = useBudgets() // We use budgets to get categories
     const { data: accounts } = useAccounts()
-    const { mutate: addTransaction, isPending } = useAddTransaction()
+    const { mutate: addTransaction, isPending: isAdding } = useAddTransaction()
+    const { mutate: updateTransaction, isPending: isUpdating } = useUpdateTransaction()
+    const isPending = isAdding || isUpdating
     const [internalOpen, setInternalOpen] = useState(false)
 
     const open = controlledOpen ?? internalOpen

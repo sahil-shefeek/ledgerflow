@@ -16,7 +16,7 @@ interface TransactionDetailsDrawerProps {
     onEdit: (transaction: any) => void
 }
 
-export function TransactionDetailsDrawer({ transaction, open, onOpenChange }: TransactionDetailsDrawerProps) {
+export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEdit }: TransactionDetailsDrawerProps) {
     const [isDeleting, setIsDeleting] = useState(false)
     const supabase = createClient()
     const queryClient = useQueryClient()
