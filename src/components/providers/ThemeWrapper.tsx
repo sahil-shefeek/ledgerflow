@@ -2,15 +2,28 @@
 import { useAppStore } from '@/store/useAppStore';
 import { useEffect, useState } from 'react';
 
-import { Loader2 } from 'lucide-react';
+import { SplashScreen } from '@/components/ui/splash-screen';
 
 export default function ThemeWrapper({ children }: { children: React.ReactNode }) {
     const { mode, _hasHydrated } = useAppStore();
-    const [mounted, setMounted] = useState(false);
+    const [showSplash, setShowSplash] = useState(true);
+    const [splashType, setSplashType] = useState<'initial' | 'switch'>('initial');
 
+    // Handle initial hydration splash
     useEffect(() => {
-        setMounted(true);
-    }, []);
+        if (_hasHydrated) {
+            // Keep splash visible for animation duration
+            // The SplashScreen component handles its own completion callback
+        }
+    }, [_hasHydrated]);
+
+    // Handle mode switch splash
+    useEffect(() => {
+        if (_hasHydrated) {
+            setSplashType('switch');
+            setShowSplash(true);
+        }
+    }, [mode]);
 
     useEffect(() => {
         // Apply the data-attribute to the body
@@ -20,18 +33,8 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
         }
     }, [mode]);
 
-    // Show splash screen until store is hydrated and component is mounted
-    if (!mounted || !_hasHydrated) {
-        return (
-            <div className="h-screen w-screen flex flex-col items-center justify-center bg-background">
-                <div className="flex flex-col items-center gap-4 animate-in fade-in zoom-in duration-300">
-                    <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center">
-                        <span className="text-primary-foreground font-bold text-xl">LF</span>
-                    </div>
-                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-                </div>
-            </div>
-        );
+    if (showSplash || !_hasHydrated) {
+        return <SplashScreen variant={splashType} onComplete={() => setShowSplash(false)} />;
     }
 
     return <>{children}</>;
