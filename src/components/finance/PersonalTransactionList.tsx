@@ -43,6 +43,8 @@ export function PersonalTransactionList() {
                     flow,
                     description,
                     date,
+                    category_id,
+                    account_id,
                     category:categories(name, icon),
                     account:accounts(name, type)
                 `)

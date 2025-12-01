@@ -19,7 +19,7 @@ export default function LedgerPage() {
     const contactId = params.contactId as string
     const { data: contacts } = useContacts()
     const { data: transactions, isLoading } = useContactTransactions(contactId)
-    const [drawerOpen, setDrawerOpen] = useState(false)
+
 
     const contact = contacts?.find(c => c.id === contactId)
 
@@ -97,17 +97,7 @@ export default function LedgerPage() {
                 )}
             </div>
 
-            <Button
-                size="icon"
-                className="fixed bottom-20 md:bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
-                onClick={() => setDrawerOpen(true)}
-            >
-                <Plus className="h-6 w-6" />
-            </Button>
-
             <TransactionDrawer
-                open={drawerOpen}
-                onOpenChange={setDrawerOpen}
                 initialData={{ contact_id: contactId }}
             />
         </div>

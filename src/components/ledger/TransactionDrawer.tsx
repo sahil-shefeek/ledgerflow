@@ -82,13 +82,13 @@ export function TransactionDrawer({
             form.reset({
                 amount: initialData.amount,
                 description: initialData.description || '',
-                date: new Date(initialData.date),
-                flow: initialData.flow,
+                date: initialData.date ? new Date(initialData.date) : new Date(),
+                flow: initialData.flow || 'OUT',
                 contact_id: initialData.contact_id,
                 category_id: initialData.category_id,
                 account_id: initialData.account_id,
             })
-            setFlow(initialData.flow)
+            if (initialData.flow) setFlow(initialData.flow)
         }
     }, [initialData, form])
 
@@ -140,10 +140,15 @@ export function TransactionDrawer({
         <Drawer open={open} onOpenChange={setOpen}>
             <DrawerTrigger asChild>
                 <Button
-                    size="icon"
-                    className="fixed bottom-20 md:bottom-6 right-6 h-14 w-14 rounded-full shadow-lg z-40"
+                    size={mode === 'business' ? 'default' : 'icon'}
+                    className={cn(
+                        "fixed bottom-20 md:bottom-6 right-6 shadow-lg z-40 rounded-full",
+                        mode === 'business' ? "h-14 px-6" : "h-14 w-14"
+                    )}
                 >
-                    <Plus className="h-6 w-6" />
+                    <Plus className={cn("h-6 w-6", mode === 'business' && "mr-2")} />
+                    {mode === 'business' && <span className="hidden md:inline">Add Transaction</span>}
+                    {mode === 'business' && <span className="md:hidden">Add</span>}
                 </Button>
             </DrawerTrigger>
             <DrawerContent>
