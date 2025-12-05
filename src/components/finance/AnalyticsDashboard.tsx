@@ -32,7 +32,7 @@ export function AnalyticsDashboard() {
 
     if (!data || data.length === 0) {
         return (
-            <Card className="h-full">
+            <Card>
                 <CardHeader>
                     <CardTitle>Spending by Category</CardTitle>
                 </CardHeader>
@@ -46,7 +46,7 @@ export function AnalyticsDashboard() {
     }
 
     return (
-        <Card className="h-full">
+        <Card>
             <CardHeader>
                 <CardTitle>Spending by Category</CardTitle>
             </CardHeader>

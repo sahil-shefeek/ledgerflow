@@ -34,7 +34,8 @@ import { DateTimePicker } from '@/components/ui/date-time-picker'
 
 const transactionSchema = z.object({
     amount: z.coerce.number().min(1, 'Amount must be greater than 0'),
-    description: z.string().optional(),
+    name: z.string().min(1, 'Name is required'),
+    note: z.string().optional(),
     contact_id: z.string().optional(),
     category_id: z.string().optional(),
     account_id: z.string().optional(),
@@ -46,11 +47,13 @@ const transactionSchema = z.object({
 export function TransactionDrawer({
     open: controlledOpen,
     onOpenChange: setControlledOpen,
-    initialData
+    initialData,
+    hideTrigger
 }: {
     open?: boolean
     onOpenChange?: (open: boolean) => void
     initialData?: any
+    hideTrigger?: boolean
 } = {}) {
     const { mode } = useAppStore()
     const { data: contacts } = useContacts()
@@ -70,7 +73,8 @@ export function TransactionDrawer({
         resolver: zodResolver(transactionSchema),
         defaultValues: {
             amount: '' as any,
-            description: '',
+            name: '',
+            note: '',
             date: new Date(),
             flow: 'OUT' as 'IN' | 'OUT',
         },
@@ -81,7 +85,8 @@ export function TransactionDrawer({
         if (initialData) {
             form.reset({
                 amount: initialData.amount,
-                description: initialData.description || '',
+                name: initialData.name || '',
+                note: initialData.note || '',
                 date: initialData.date ? new Date(initialData.date) : new Date(),
                 flow: initialData.flow || 'OUT',
                 contact_id: initialData.contact_id,
@@ -117,7 +122,8 @@ export function TransactionDrawer({
                 setOpen(false)
                 form.reset({
                     amount: '' as any,
-                    description: '',
+                    name: '',
+                    note: '',
                     date: new Date(),
                     flow: 'OUT',
                 })
@@ -138,19 +144,21 @@ export function TransactionDrawer({
 
     return (
         <Drawer open={open} onOpenChange={setOpen}>
-            <DrawerTrigger asChild>
-                <Button
-                    size={mode === 'business' ? 'default' : 'icon'}
-                    className={cn(
-                        "fixed bottom-20 md:bottom-6 right-6 shadow-lg z-40 rounded-full",
-                        mode === 'business' ? "h-14 px-6" : "h-14 w-14"
-                    )}
-                >
-                    <Plus className={cn("h-6 w-6", mode === 'business' && "mr-2")} />
-                    {mode === 'business' && <span className="hidden md:inline">Add Transaction</span>}
-                    {mode === 'business' && <span className="md:hidden">Add</span>}
-                </Button>
-            </DrawerTrigger>
+            {!hideTrigger && (
+                <DrawerTrigger asChild>
+                    <Button
+                        size={mode === 'business' ? 'default' : 'icon'}
+                        className={cn(
+                            "fixed bottom-20 md:bottom-6 right-6 shadow-lg z-40 rounded-full",
+                            mode === 'business' ? "h-14 px-6" : "h-14 w-14"
+                        )}
+                    >
+                        <Plus className={cn("h-6 w-6", mode === 'business' && "mr-2")} />
+                        {mode === 'business' && <span className="hidden md:inline">Add Transaction</span>}
+                        {mode === 'business' && <span className="md:hidden">Add</span>}
+                    </Button>
+                </DrawerTrigger>
+            )}
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
@@ -323,12 +331,32 @@ export function TransactionDrawer({
 
                                 <FormField
                                     control={form.control}
-                                    name="description"
+                                    name="name"
                                     render={({ field }) => (
                                         <FormItem>
-                                            <FormLabel>Description (Optional)</FormLabel>
+                                            <FormLabel>Name</FormLabel>
                                             <FormControl>
-                                                <Input placeholder="Dinner, Taxi, etc." {...field} />
+                                                <Input
+                                                    placeholder={mode === 'business' ? "Payment for goods, Invoice #123" : "Starbucks, Uber, etc."}
+                                                    {...field}
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
+
+                                <FormField
+                                    control={form.control}
+                                    name="note"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Note (Optional)</FormLabel>
+                                            <FormControl>
+                                                <Input
+                                                    placeholder={mode === 'business' ? "Payment details, etc." : "Coffee with John, etc."}
+                                                    {...field}
+                                                />
                                             </FormControl>
                                             <FormMessage />
                                         </FormItem>

@@ -44,6 +44,12 @@ export function Sidebar() {
             showIn: 'personal',
         },
         {
+            label: 'Manage Categories',
+            href: '/dashboard/categories',
+            icon: Users,
+            showIn: 'personal',
+        },
+        {
             label: 'Settings',
             href: '/dashboard/settings',
             icon: Settings,

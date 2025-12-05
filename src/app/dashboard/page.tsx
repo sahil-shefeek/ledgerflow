@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button'
 import { BusinessSummary } from '@/components/ledger/BusinessSummary'
 import { PersonalTransactionList } from '@/components/finance/PersonalTransactionList'
 import { AccountsList } from '@/components/finance/AccountsList'
+import { RecurringTransactionsList } from '@/components/finance/RecurringTransactionsList'
 import { Plus } from 'lucide-react'
 
 import { MobileSidebar } from '@/components/layout/MobileSidebar'
@@ -58,6 +59,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="lg:col-span-3 space-y-4">
                             <AccountsList />
+                            <RecurringTransactionsList />
                             <BudgetsList />
                             <GoalsList />
                         </div>

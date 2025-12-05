@@ -44,6 +44,7 @@ create table public.categories (
   icon text, -- Lucide icon name
   type text check (type in ('INCOME', 'EXPENSE')),
   budget_limit numeric,
+  active boolean default true,
   created_at timestamptz default now()
 );
 
@@ -58,7 +59,8 @@ create table public.transactions (
   contact_id uuid references public.contacts(id) on delete set null,
   category_id uuid references public.categories(id) on delete set null,
   date timestamptz not null default now(),
-  description text,
+  name text not null,
+  note text,
   attachment_url text,
   created_at timestamptz default now()
 );
@@ -237,14 +239,30 @@ language plpgsql
 security definer set search_path = public
 as $$
 begin
-  insert into public.categories (user_id, name, icon, type)
+  insert into public.categories (user_id, name, icon, type, active)
   values
-    (new.id, 'Food', '🍔', 'EXPENSE'),
-    (new.id, 'Transport', '🚗', 'EXPENSE'),
-    (new.id, 'Entertainment', '🎬', 'EXPENSE'),
-    (new.id, 'Shopping', '🛍️', 'EXPENSE'),
-    (new.id, 'Bills', '💡', 'EXPENSE'),
-    (new.id, 'Health', '🏥', 'EXPENSE');
+    (new.id, 'Food', '🍔', 'EXPENSE', true),
+    (new.id, 'Transport', '🚗', 'EXPENSE', true),
+    (new.id, 'Shopping', '🛍️', 'EXPENSE', true),
+    (new.id, 'Entertainment', '🎬', 'EXPENSE', true),
+    (new.id, 'Bills', '💡', 'EXPENSE', true),
+    (new.id, 'Health', '🏥', 'EXPENSE', true),
+    (new.id, 'Education', '📚', 'EXPENSE', true),
+    (new.id, 'Groceries', '🛒', 'EXPENSE', true),
+    (new.id, 'Rent', '🏠', 'EXPENSE', true),
+    (new.id, 'Utilities', '⚡', 'EXPENSE', true),
+    (new.id, 'Insurance', '🛡️', 'EXPENSE', true),
+    (new.id, 'Savings', '💰', 'EXPENSE', true),
+    (new.id, 'Investment', '📈', 'EXPENSE', true),
+    (new.id, 'Gifts', '🎁', 'EXPENSE', true),
+    (new.id, 'Travel', '✈️', 'EXPENSE', true),
+    (new.id, 'Fuel', '⛽', 'EXPENSE', true),
+    (new.id, 'Maintenance', '🔧', 'EXPENSE', true),
+    (new.id, 'Pets', '🐾', 'EXPENSE', true),
+    (new.id, 'Kids', '🧸', 'EXPENSE', true),
+    (new.id, 'Salary', '💵', 'INCOME', true),
+    (new.id, 'Business', '💼', 'INCOME', true),
+    (new.id, 'Interest', '🏦', 'INCOME', true);
   return new;
 end;
 $$;
@@ -368,4 +386,35 @@ $$;
 create trigger on_auth_user_created_seed_business
   after insert on auth.users
   for each row execute procedure public.seed_default_business();
+
+
+-- 1. Create recurring_transactions table
+create table if not exists public.recurring_transactions (
+  id uuid default uuid_generate_v4() primary key,
+  user_id uuid references public.profiles(id) on delete cascade not null,
+  amount numeric not null check (amount > 0),
+  flow text check (flow in ('IN', 'OUT')) default 'OUT',
+  name text not null,
+  note text,
+  category_id uuid references public.categories(id) on delete set null,
+  account_id uuid references public.accounts(id) on delete set null,
+  frequency text check (frequency in ('DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY')) not null,
+  start_date timestamptz not null default now(),
+  next_run_date timestamptz not null,
+  last_run_date timestamptz,
+  active boolean default true,
+  created_at timestamptz default now()
+);
+
+-- RLS for recurring_transactions
+alter table public.recurring_transactions enable row level security;
+
+create policy "Users can view own recurring transactions" on public.recurring_transactions
+  for select using (auth.uid() = user_id);
+
+create policy "Users can insert own recurring transactions" on public.recurring_transactions
+  for insert with check (auth.uid() = user_id);
+
+create policy "Users can update own recurring transactions" on public.recurring_transactions
+  for update using (auth.uid() = user_id);
 

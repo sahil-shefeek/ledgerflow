@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/useAppStore'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Briefcase, LogOut, Menu, Wallet, Settings } from 'lucide-react'
+import { Briefcase, LogOut, Menu, Wallet, Settings, Users } from 'lucide-react'
 import { useState } from 'react'
 
 export function MobileSidebar() {
@@ -66,6 +66,19 @@ export function MobileSidebar() {
                         <Settings className="h-4 w-4" />
                         <span>Settings</span>
                     </Button>
+                    {mode === 'personal' && (
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-start gap-2"
+                            onClick={() => {
+                                router.push('/dashboard/categories')
+                                setOpen(false)
+                            }}
+                        >
+                            <Users className="h-4 w-4" />
+                            <span>Manage Categories</span>
+                        </Button>
+                    )}
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"

@@ -35,6 +35,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
 
             toast.success('Transaction deleted')
             queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['contact-transactions'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             onOpenChange(false)
@@ -74,6 +75,12 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                 <div className="flex justify-between">
                                     <span className="text-muted-foreground">Description</span>
                                     <span className="font-medium">{transaction.description}</span>
+                                </div>
+                            )}
+                            {transaction.note && (
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">Note</span>
+                                    <span className="font-medium">{transaction.note}</span>
                                 </div>
                             )}
                             {transaction.account && (

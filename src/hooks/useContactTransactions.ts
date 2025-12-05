@@ -4,7 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 export interface Transaction {
     id: string
     amount: number
-    description: string
+    description?: string
+    name: string
+    note?: string
     date: string
     flow: 'IN' | 'OUT'
     mode: 'BUSINESS' | 'PERSONAL'
