@@ -14,7 +14,7 @@ import { Contact } from '@/hooks/useContacts'
 import { format } from 'date-fns'
 import { Trash2, Edit, Phone, User } from 'lucide-react'
 import { toast } from 'sonner'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface ContactDetailsDrawerProps {

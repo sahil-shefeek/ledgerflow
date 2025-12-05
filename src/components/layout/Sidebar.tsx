@@ -16,7 +16,7 @@ import {
     Wallet,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { createClient } from '@/utils/supabase/client'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
 export function Sidebar() {
