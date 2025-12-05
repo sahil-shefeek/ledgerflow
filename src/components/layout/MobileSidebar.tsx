@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/useAppStore'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Briefcase, LogOut, Menu, Wallet } from 'lucide-react'
+import { Briefcase, LogOut, Menu, Wallet, Settings } from 'lucide-react'
 import { useState } from 'react'
 
 export function MobileSidebar() {
@@ -54,6 +54,17 @@ export function MobileSidebar() {
                                 <span>Switch to Business</span>
                             </>
                         )}
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                            router.push('/dashboard/settings')
+                            setOpen(false)
+                        }}
+                    >
+                        <Settings className="h-4 w-4" />
+                        <span>Settings</span>
                     </Button>
                     <Button
                         variant="ghost"
