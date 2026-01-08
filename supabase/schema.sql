@@ -406,6 +406,30 @@ create table if not exists public.recurring_transactions (
   created_at timestamptz default now()
 );
 
+-- Indexes for performance (GA Hardening)
+-- 1. RLS Support
+create index if not exists categories_user_id_idx on public.categories(user_id);
+create index if not exists accounts_user_id_idx on public.accounts(user_id);
+create index if not exists businesses_user_id_idx on public.businesses(user_id);
+create index if not exists recurring_transactions_user_id_idx on public.recurring_transactions(user_id);
+
+-- 2. Foreign Keys
+create index if not exists transactions_category_id_idx on public.transactions(category_id);
+create index if not exists transactions_contact_id_idx on public.transactions(contact_id);
+create index if not exists transactions_account_id_idx on public.transactions(account_id);
+create index if not exists transactions_business_id_idx on public.transactions(business_id);
+create index if not exists recurring_transactions_category_id_idx on public.recurring_transactions(category_id);
+create index if not exists recurring_transactions_account_id_idx on public.recurring_transactions(account_id);
+
+-- 3. Frequently Filtered
+create index if not exists contacts_type_idx on public.contacts(type);
+create index if not exists categories_active_idx on public.categories(active);
+
+-- 4. Analytics
+-- Supersedes specific user_id+date index if we want, but keeping both is safer for now unless strictly redundant.
+-- Constructing purely for the `get_monthly_category_spend` pattern.
+create index if not exists transactions_analytics_idx on public.transactions(user_id, mode, date);
+
 -- RLS for recurring_transactions
 alter table public.recurring_transactions enable row level security;
 
