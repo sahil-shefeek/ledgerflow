@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/components/providers/QueryProvider";
 import ThemeWrapper from "@/components/providers/ThemeWrapper";
+import ErrorBoundary from "@/components/providers/ErrorBoundary";
 import { Toaster } from "sonner";
 
 const geistSans = Geist({
@@ -31,10 +32,12 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <QueryProvider>
-          <ThemeWrapper>
-            {children}
-            <Toaster />
-          </ThemeWrapper>
+          <ErrorBoundary>
+            <ThemeWrapper>
+              {children}
+              <Toaster />
+            </ThemeWrapper>
+          </ErrorBoundary>
         </QueryProvider>
       </body>
     </html>

@@ -76,7 +76,28 @@ export default function LedgerPage() {
     }, [transactions, timeFilter, sortBy])
 
     if (!contact) {
-        return <div>Contact not found</div>
+        return (
+            <div className="flex h-[50vh] flex-col items-center justify-center">
+                <Empty>
+                    <EmptyHeader>
+                        <EmptyMedia variant="icon">
+                            <div className="p-3 bg-muted rounded-full">
+                                <ArrowLeft className="h-6 w-6 text-muted-foreground" />
+                            </div>
+                        </EmptyMedia>
+                        <EmptyTitle>Contact Not Found</EmptyTitle>
+                        <EmptyDescription>
+                            The contact you are looking for does not exist or has been deleted.
+                        </EmptyDescription>
+                    </EmptyHeader>
+                    <EmptyContent>
+                        <Button onClick={() => router.push('/dashboard')}>
+                            Go Back to Dashboard
+                        </Button>
+                    </EmptyContent>
+                </Empty>
+            </div>
+        )
     }
 
     return (
