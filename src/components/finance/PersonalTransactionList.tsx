@@ -6,6 +6,7 @@ import { Loader2, Receipt, Filter, ArrowUpDown } from 'lucide-react'
 import { formatTransactionDate } from '@/lib/date-utils'
 import { TransactionDetailsDrawer } from './TransactionDetailsDrawer'
 import { Badge } from '@/components/ui/badge'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { TransactionDrawer } from '@/components/ledger/TransactionDrawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -142,8 +143,19 @@ export function PersonalTransactionList() {
                 </CardHeader>
                 <CardContent className="flex-1 overflow-hidden">
                     {isLoading ? (
-                        <div className="flex justify-center p-4">
-                            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                        <div className="space-y-4 h-full overflow-y-auto pr-2 pb-4">
+                            {Array.from({ length: 6 }).map((_, i) => (
+                                <div key={i} className="flex items-center justify-between p-2">
+                                    <div className="flex items-center gap-3">
+                                        <Skeleton className="h-10 w-10 rounded-full" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-40" />
+                                            <Skeleton className="h-3 w-24" />
+                                        </div>
+                                    </div>
+                                    <Skeleton className="h-4 w-20" />
+                                </div>
+                            ))}
                         </div>
                     ) : filteredTransactions?.length === 0 ? (
                         <Empty className="mt-8">
