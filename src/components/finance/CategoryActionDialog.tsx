@@ -20,7 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label'
 
 interface CategoryActionDialogProps {
-    category: any
+    category: { id: string; name: string; type: 'INCOME' | 'EXPENSE'; icon: string } | null
     action: 'DELETE' | 'DISABLE' | null
     onClose: () => void
 }
@@ -51,6 +51,7 @@ export function CategoryActionDialog({ category, action, onClose }: CategoryActi
     const { data: otherCategories } = useQuery({
         queryKey: ['other-categories', category?.id],
         queryFn: async () => {
+            if (!category) return []
             const { data } = await supabase
                 .from('categories')
                 .select('id, name, icon')
@@ -105,8 +106,12 @@ export function CategoryActionDialog({ category, action, onClose }: CategoryActi
 
             queryClient.invalidateQueries({ queryKey: ['categories'] })
             onClose()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error(error.message)
+            } else {
+                toast.error('An unknown error occurred')
+            }
         } finally {
             setIsPending(false)
         }

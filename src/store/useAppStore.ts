@@ -68,7 +68,7 @@ export const useAppStore = create<AppState>()(
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                    let updateData: any = mode === 'business'
+                    const updateData: Record<string, unknown> = mode === 'business'
                         ? { business_theme: settings.theme, business_accent: settings.accent }
                         : { personal_theme: settings.theme, personal_accent: settings.accent };
 
@@ -108,7 +108,7 @@ export const useAppStore = create<AppState>()(
                 const supabase = createClient();
                 const { data: { user } } = await supabase.auth.getUser();
                 if (user) {
-                    const updateData: any = { sync_themes: enabled };
+                    const updateData: Record<string, unknown> = { sync_themes: enabled };
                     if (enabled) {
                         const currentMode = state.mode;
                         const currentTheme = state.themeSettings[currentMode].theme;

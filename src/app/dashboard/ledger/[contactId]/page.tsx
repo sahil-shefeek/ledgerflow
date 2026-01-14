@@ -19,6 +19,18 @@ import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'dat
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
 type SortOption = 'LATEST' | 'OLDEST' | 'HIGHEST' | 'LOWEST'
 
+interface Transaction {
+    id: string
+    amount: number
+    date: string
+    flow: string
+    description?: string
+    note?: string
+    category?: { name: string; icon: string } | null
+    account?: { name: string } | null
+    name?: string // For contact transactions sometimes name is used?
+}
+
 export default function LedgerPage() {
     const params = useParams()
     const router = useRouter()
@@ -27,9 +39,9 @@ export default function LedgerPage() {
     const { data: transactions, isLoading } = useContactTransactions(contactId)
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')
-    const [selectedTransaction, setSelectedTransaction] = useState<any>(null)
+    const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
-    const [editingTransaction, setEditingTransaction] = useState<any>(null)
+    const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
     const [editOpen, setEditOpen] = useState(false)
 
 
@@ -129,7 +141,7 @@ export default function LedgerPage() {
                 <div className="flex items-center justify-between">
                     <h2 className="text-lg font-semibold">Transactions</h2>
                     <div className="flex gap-2">
-                        <Select value={timeFilter} onValueChange={(v: any) => setTimeFilter(v)}>
+                        <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
                             <SelectTrigger className="w-[110px] h-8 text-xs">
                                 <SelectValue placeholder="Filter" />
                             </SelectTrigger>
@@ -141,7 +153,7 @@ export default function LedgerPage() {
                                 <SelectItem value="YEAR">This Year</SelectItem>
                             </SelectContent>
                         </Select>
-                        <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                        <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                             <SelectTrigger className="w-[110px] h-8 text-xs">
                                 <SelectValue placeholder="Sort" />
                             </SelectTrigger>

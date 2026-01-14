@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -10,9 +10,8 @@ import { useAddRecurringTransaction } from '@/hooks/useAddRecurringTransaction'
 import { useAccounts } from '@/hooks/useAccounts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { cn } from '@/lib/utils'
-import { Loader2, Plus, Repeat } from 'lucide-react'
+
+import { Loader2, Plus } from 'lucide-react'
 import { useBudgets } from '@/hooks/useBudgets'
 import {
     Select,
@@ -51,7 +50,7 @@ export function RecurringTransactionDrawer({
     const form = useForm({
         resolver: zodResolver(recurringSchema),
         defaultValues: {
-            amount: '' as any,
+            amount: '' as unknown as number,
             name: '',
             note: '',
             start_date: new Date(),
@@ -60,36 +59,10 @@ export function RecurringTransactionDrawer({
         },
     })
 
-    function onSubmit(values: any) {
-        if (!values.category_id && flow === 'OUT') {
-            toast.error('Please select a category')
-            return
-        }
 
-        const data = {
-            ...values,
-            flow,
-            next_run_date: values.start_date.toISOString(), // First run is on start date
-            user_id: (window as any).supabase?.auth?.user()?.id // This might be tricky, usually handled by RLS or backend. 
-            // Actually supabase client in hook handles auth. insert doesn't need user_id if RLS sets it or if we pass it.
-            // But usually we need to pass it if table not set to default auth.uid().
-            // My schema has `user_id uuid references public.profiles(id) ... not null`.
-            // And RLS `with check (auth.uid() = user_id)`.
-            // So I must pass user_id.
-            // I'll get it from a hook or store.
-        }
-
-        // Wait, useAddRecurringTransaction uses supabase client which has session.
-        // But I need to pass user_id in the insert payload if the column is not default.
-        // I'll use useAppStore or just let the backend trigger handle it?
-        // My schema doesn't have a trigger to set user_id on insert for this table.
-        // I should get the user ID.
-        // I'll use `useAppStore` if it has user, or `createClient` to get user.
-        // For now, I'll fetch user in the submit handler.
-    }
 
     // Better way to handle submit with user_id
-    const handleSubmit = async (values: any) => {
+    const handleSubmit = async (values: z.infer<typeof recurringSchema>) => {
         if (!values.category_id && flow === 'OUT') {
             toast.error('Please select a category')
             return

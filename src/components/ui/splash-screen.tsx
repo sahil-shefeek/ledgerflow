@@ -2,12 +2,12 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { Briefcase, Wallet } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 
 export function SplashScreen({ onComplete, variant = 'initial' }: { onComplete?: () => void, variant?: 'initial' | 'switch' }) {
     const { mode } = useAppStore()
-    const [step, setStep] = useState<'logo' | 'icon'>('logo')
+
 
     useEffect(() => {
         if (variant === 'initial') {
@@ -18,7 +18,6 @@ export function SplashScreen({ onComplete, variant = 'initial' }: { onComplete?:
             return () => clearTimeout(timer)
         } else {
             // Variant is switch, start with icon directly
-            setStep('icon')
             const timer = setTimeout(() => {
                 onComplete?.()
             }, 1500)

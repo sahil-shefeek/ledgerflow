@@ -55,7 +55,7 @@ export function AnalyticsDashboard() {
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
-                                data={data as any[]}
+                                data={data as any[]} // eslint-disable-line @typescript-eslint/no-explicit-any
                                 cx="50%"
                                 cy="50%"
                                 innerRadius={60}

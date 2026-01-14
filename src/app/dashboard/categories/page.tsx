@@ -22,9 +22,9 @@ export default function CategoriesPage() {
     const supabase = createClient()
     const router = useRouter()
     const queryClient = useQueryClient()
-    const [editingCategory, setEditingCategory] = useState<any>(null)
+    const [editingCategory, setEditingCategory] = useState<{ id: string; name: string; type: 'INCOME' | 'EXPENSE'; icon: string } | null>(null)
     const [editOpen, setEditOpen] = useState(false)
-    const [actionCategory, setActionCategory] = useState<any>(null)
+    const [actionCategory, setActionCategory] = useState<{ id: string; name: string; type: 'INCOME' | 'EXPENSE'; icon: string } | null>(null)
     const [actionType, setActionType] = useState<'DELETE' | 'DISABLE' | null>(null)
 
     const { data: categories, isLoading } = useQuery({
@@ -41,7 +41,7 @@ export default function CategoriesPage() {
         }
     })
 
-    const handleEnable = async (category: any) => {
+    const handleEnable = async (category: { id: string }) => {
         const { error } = await supabase
             .from('categories')
             .update({ active: true })
@@ -157,7 +157,7 @@ export default function CategoriesPage() {
             <CategoryDrawer
                 open={editOpen}
                 onOpenChange={setEditOpen}
-                initialData={editingCategory}
+                initialData={editingCategory || undefined}
             />
 
             <CategoryActionDialog

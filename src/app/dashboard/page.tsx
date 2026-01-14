@@ -42,7 +42,7 @@ export default function DashboardPage() {
             </div>
             {mode === 'personal' && (
                 <div className="text-muted-foreground">
-                    Welcome back! Here's your financial overview.
+                    Welcome back! Here&apos;s your financial overview.
                 </div>
             )}
             {mode === 'business' ? (

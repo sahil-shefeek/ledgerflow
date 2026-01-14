@@ -2,12 +2,12 @@ import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Loader2, Receipt, Filter, ArrowUpDown } from 'lucide-react'
+import { Receipt } from 'lucide-react'
 import { formatTransactionDate } from '@/lib/date-utils'
 import { TransactionDetailsDrawer } from './TransactionDetailsDrawer'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { TransactionDrawer } from '@/components/ledger/TransactionDrawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns'
@@ -115,7 +115,7 @@ export function PersonalTransactionList() {
                     <div className="flex items-center justify-between">
                         <CardTitle>Recent Transactions</CardTitle>
                         <div className="flex gap-2">
-                            <Select value={timeFilter} onValueChange={(v: any) => setTimeFilter(v)}>
+                            <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
                                 <SelectTrigger className="w-[110px] h-8 text-xs">
                                     <SelectValue placeholder="Filter" />
                                 </SelectTrigger>
@@ -127,7 +127,7 @@ export function PersonalTransactionList() {
                                     <SelectItem value="YEAR">This Year</SelectItem>
                                 </SelectContent>
                             </Select>
-                            <Select value={sortBy} onValueChange={(v: any) => setSortBy(v)}>
+                            <Select value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
                                 <SelectTrigger className="w-[110px] h-8 text-xs">
                                     <SelectValue placeholder="Sort" />
                                 </SelectTrigger>

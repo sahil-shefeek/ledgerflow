@@ -12,6 +12,7 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
     const prevModeRef = useRef<string | null>(null);
 
     // Get current settings or defaults
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const currentSettings = themeSettings?.[mode] || { theme: mode === 'business' ? 'light' : 'dark', accent: mode === 'business' ? 'blue' : 'green' };
 
     // Handle initial hydration splash
@@ -27,8 +28,11 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
             if (prevModeRef.current === null) {
                 prevModeRef.current = mode;
             } else if (prevModeRef.current !== mode) {
-                setSplashType('switch');
-                setShowSplash(true);
+                // Schedule update to avoid synchronous state update warning
+                setTimeout(() => {
+                    setSplashType('switch');
+                    setShowSplash(true);
+                }, 0);
                 prevModeRef.current = mode;
             }
         }
@@ -38,16 +42,9 @@ export default function ThemeWrapper({ children }: { children: React.ReactNode }
         const body = document.querySelector('body');
         if (body) {
             // Apply Theme (Light/Dark)
-            // We use 'data-mode' for Tailwind dark mode selector
-            // But wait, our tailwind config might be using 'class' strategy or 'data-mode'.
-            // Assuming 'class' strategy for next-themes usually, but here we are manual.
-            // Let's check globals.css later. For now, let's assume we toggle a class 'dark' if theme is dark.
+            const theme = currentSettings.theme;
 
-            // Actually, the previous code used `data-mode={mode}`. 
-            // Now we want `class="dark"` if currentSettings.theme is 'dark', else remove 'dark'.
-            // AND we might still want `data-mode` for other styling hooks if used.
-
-            if (currentSettings.theme === 'dark') {
+            if (theme === 'dark') {
                 body.classList.add('dark');
             } else {
                 body.classList.remove('dark');

@@ -10,10 +10,19 @@ import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 
 interface TransactionDetailsDrawerProps {
-    transaction: any
+    transaction: {
+        id: string
+        amount: number
+        date: string
+        flow: string
+        description?: string
+        note?: string
+        category?: { name: string; icon: string } | null
+        account?: { name: string } | null
+    } | null
     open: boolean
     onOpenChange: (open: boolean) => void
-    onEdit: (transaction: any) => void
+    onEdit: (transaction: any) => void // eslint-disable-line @typescript-eslint/no-explicit-any
 }
 
 export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEdit }: TransactionDetailsDrawerProps) {

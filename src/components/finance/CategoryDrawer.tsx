@@ -11,7 +11,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Loader2, Plus } from 'lucide-react'
+import { Loader2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 const categorySchema = z.object({
@@ -24,7 +24,7 @@ interface CategoryDrawerProps {
     children?: React.ReactNode
     open?: boolean
     onOpenChange?: (open: boolean) => void
-    initialData?: any
+    initialData?: z.infer<typeof categorySchema> & { id: string }
 }
 
 export function CategoryDrawer({
@@ -66,7 +66,7 @@ export function CategoryDrawer({
         }
     }, [initialData, form, open])
 
-    const handleSubmit = async (values: any) => {
+    const handleSubmit = async (values: z.infer<typeof categorySchema>) => {
         setIsPending(true)
         try {
             const { data: { user } } = await supabase.auth.getUser()
@@ -90,8 +90,12 @@ export function CategoryDrawer({
             queryClient.invalidateQueries({ queryKey: ['categories'] })
             setOpen(false)
             form.reset()
-        } catch (error: any) {
-            toast.error(error.message)
+        } catch (error: unknown) {
+            if (error instanceof Error) {
+                toast.error(error.message)
+            } else {
+                toast.error('An unknown error occurred')
+            }
         } finally {
             setIsPending(false)
         }

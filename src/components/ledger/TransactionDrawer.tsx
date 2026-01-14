@@ -52,7 +52,7 @@ export function TransactionDrawer({
 }: {
     open?: boolean
     onOpenChange?: (open: boolean) => void
-    initialData?: any
+    initialData?: any // eslint-disable-line @typescript-eslint/no-explicit-any
     hideTrigger?: boolean
 } = {}) {
     const { mode } = useAppStore()
@@ -72,7 +72,7 @@ export function TransactionDrawer({
     const form = useForm({
         resolver: zodResolver(transactionSchema),
         defaultValues: {
-            amount: '' as any,
+            amount: '' as unknown as number,
             name: '',
             note: '',
             date: new Date(),
@@ -93,11 +93,13 @@ export function TransactionDrawer({
                 category_id: initialData.category_id,
                 account_id: initialData.account_id,
             })
-            if (initialData.flow) setFlow(initialData.flow)
+            if (initialData.flow) {
+                setTimeout(() => setFlow(initialData.flow), 0)
+            }
         }
     }, [initialData, form])
 
-    function onSubmit(values: any) {
+    function onSubmit(values: z.infer<typeof transactionSchema>) {
         if (mode === 'business' && !values.contact_id) {
             toast.error('Please select a contact')
             return
@@ -113,7 +115,7 @@ export function TransactionDrawer({
 
         const transactionData = {
             ...values,
-            mode: mode === 'business' ? 'BUSINESS' : 'PERSONAL',
+            mode: (mode === 'business' ? 'BUSINESS' : 'PERSONAL') as "BUSINESS" | "PERSONAL",
             flow: flow,
         }
 
@@ -121,7 +123,7 @@ export function TransactionDrawer({
             onSuccess: () => {
                 setOpen(false)
                 form.reset({
-                    amount: '' as any,
+                    amount: '' as unknown as number,
                     name: '',
                     note: '',
                     date: new Date(),
@@ -130,7 +132,7 @@ export function TransactionDrawer({
                 setFlow('OUT') // Reset flow default
                 toast.success(initialData?.id ? 'Transaction updated' : 'Transaction saved')
             },
-            onError: (error: any) => {
+            onError: (error: Error) => {
                 toast.error(`Failed to save: ${error.message}`)
             }
         }

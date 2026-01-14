@@ -60,7 +60,7 @@ Deno.serve(async (req) => {
             }
 
             // Calculate next run date
-            let nextDate = new Date(item.next_run_date)
+            const nextDate = new Date(item.next_run_date)
             switch (item.frequency) {
                 case 'DAILY':
                     nextDate.setDate(nextDate.getDate() + 1)

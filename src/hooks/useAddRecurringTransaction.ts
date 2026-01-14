@@ -7,7 +7,7 @@ export function useAddRecurringTransaction() {
     const queryClient = useQueryClient()
 
     return useMutation({
-        mutationFn: async (data: any) => {
+        mutationFn: async (data: Record<string, unknown>) => {
             const { error } = await supabase
                 .from('recurring_transactions')
                 .insert(data)

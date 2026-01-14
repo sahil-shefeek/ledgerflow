@@ -63,10 +63,10 @@ export default function LoginPage() {
 
     const otpForm = useForm<z.infer<typeof otpSchema>>({
         resolver: zodResolver(otpSchema),
-        defaultValues: {
-            otp: '',
-        },
     })
+
+    // eslint-disable-next-line react-hooks/incompatible-library
+    const otpValue = otpForm.watch('otp')
 
     async function onPhoneSubmit(values: z.infer<typeof phoneSchema>) {
         setLoading(true)
@@ -183,7 +183,7 @@ export default function LoginPage() {
                                                 <InputOTP
                                                     maxLength={6}
                                                     value={field.value ?? ""}
-                                                    onChange={(payload: any) => {
+                                                    onChange={(payload: unknown) => {
                                                         const raw = payload == null ? "" : String(payload)
                                                         const digits = raw.replace(/\D/g, "").slice(0, 6)
                                                         field.onChange(digits)
@@ -205,7 +205,7 @@ export default function LoginPage() {
                                         </FormItem>
                                     )}
                                 />
-                                <Button type="submit" className="w-full" disabled={loading || otpForm.watch('otp')?.length !== 6}>
+                                <Button type="submit" className="w-full" disabled={loading || otpValue?.length !== 6}>
                                     {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Verify OTP
                                 </Button>

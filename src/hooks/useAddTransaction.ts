@@ -1,7 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/useAppStore'
-import { Transaction } from './useTransactions'
 import { Contact } from './useContacts'
 import { toast } from 'sonner'
 
@@ -60,7 +59,7 @@ export function useAddTransaction() {
 
             // Optimistically update transactions (Business Mode)
             if (newTransaction.contact_id) {
-                queryClient.setQueryData(['transactions', newTransaction.contact_id], (old: any) => {
+                queryClient.setQueryData(['transactions', newTransaction.contact_id], (old: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                     const optimisticTransaction = {
                         id: 'temp-' + Date.now(),
                         ...newTransaction,
