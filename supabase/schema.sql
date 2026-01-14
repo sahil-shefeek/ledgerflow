@@ -8,6 +8,7 @@ create table public.profiles (
   business_name text,
   currency_symbol text default '₹',
   phone text,
+  avatar_url text,
   created_at timestamptz default now()
 );
 

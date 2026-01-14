@@ -8,11 +8,15 @@ import { useRouter } from 'next/navigation'
 import { Briefcase, LogOut, Menu, Wallet, Settings, Users } from 'lucide-react'
 import { useState } from 'react'
 
+import { useProfile } from '@/hooks/use-profile'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
 export function MobileSidebar() {
     const { mode, toggleMode } = useAppStore()
     const router = useRouter()
     const supabase = createClient()
     const [open, setOpen] = useState(false)
+    const { profile } = useProfile()
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
@@ -34,10 +38,20 @@ export function MobileSidebar() {
                 </Button>
             </SheetTrigger>
             <SheetContent side="left">
-                <SheetHeader>
+                <SheetHeader className="text-left">
                     <SheetTitle>Menu</SheetTitle>
+                    <div className="flex items-center gap-3 mt-4 mb-2">
+                        <Avatar className="h-10 w-10">
+                            <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
+                            <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                            <span className="font-semibold">{profile?.full_name || 'LedgerFlow'}</span>
+                            <span className="text-xs text-muted-foreground">{mode === 'business' ? profile?.business_name || 'Business' : 'Personal Finance'}</span>
+                        </div>
+                    </div>
                 </SheetHeader>
-                <div className="flex flex-col gap-4 mt-8">
+                <div className="flex flex-col gap-4 mt-4">
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-2"

@@ -19,11 +19,15 @@ import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
+import { useProfile } from '@/hooks/use-profile'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
 export function Sidebar() {
     const pathname = usePathname()
     const { mode, toggleMode } = useAppStore()
     const router = useRouter()
     const supabase = createClient()
+    const { profile } = useProfile()
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
@@ -58,15 +62,15 @@ export function Sidebar() {
 
     return (
         <div className="hidden h-screen w-64 flex-col border-r bg-sidebar text-sidebar-foreground md:flex">
-            <div className="flex h-14 items-center border-b px-4">
-                <Link href="/dashboard" className="flex items-center gap-2 font-semibold">
-                    {mode === 'business' ? (
-                        <Briefcase className="h-6 w-6 text-primary" />
-                    ) : (
-                        <Wallet className="h-6 w-6 text-primary" />
-                    )}
-                    <span>LedgerFlow</span>
-                </Link>
+            <div className="flex h-16 items-center border-b px-4 gap-3">
+                <Avatar className="h-8 w-8">
+                    <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} />
+                    <AvatarFallback>{profile?.full_name?.charAt(0) || 'U'}</AvatarFallback>
+                </Avatar>
+                <div className="flex flex-col overflow-hidden">
+                    <span className="text-sm font-semibold truncate">{profile?.full_name || 'LedgerFlow'}</span>
+                    <span className="text-xs text-muted-foreground truncate">{mode === 'business' ? profile?.business_name || 'Business' : 'Personal Finance'}</span>
+                </div>
             </div>
             <div className="flex-1 overflow-auto py-4">
                 <nav className="grid gap-1 px-2">

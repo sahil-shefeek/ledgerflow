@@ -4,10 +4,18 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useAppStore } from '@/store/useAppStore'
-import { Moon, Sun, Check } from 'lucide-react'
+import { Moon, Sun, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
+import { useProfile, Profile } from '@/hooks/use-profile'
+import { AvatarUpload } from '@/components/ui/avatar-upload'
+import { useEffect } from 'react'
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 
 const ACCENT_COLORS = [
     { name: 'Blue', value: 'blue', class: 'bg-blue-500' },
@@ -18,8 +26,18 @@ const ACCENT_COLORS = [
     { name: 'Slate', value: 'slate', class: 'bg-slate-500' },
 ]
 
+const profileSchema = z.object({
+    full_name: z.string().min(2, 'Name must be at least 2 characters'),
+    business_name: z.string().optional(),
+    phone: z.string().optional(),
+    avatar_url: z.string().optional(),
+})
+
+type ProfileFormValues = z.infer<typeof profileSchema>
+
 export default function SettingsPage() {
     const { mode, themeSettings, updateThemeSettings, syncThemes, setSyncThemes } = useAppStore()
+    const { profile, isLoading: isProfileLoading, updateProfile } = useProfile()
 
     // Fallback if themeSettings is not yet loaded or structure is missing
     const currentSettings = themeSettings?.[mode] || { theme: mode === 'business' ? 'light' : 'dark', accent: mode === 'business' ? 'blue' : 'green' }
@@ -30,6 +48,31 @@ export default function SettingsPage() {
 
     const handleAccentChange = (accent: string) => {
         updateThemeSettings(mode, { ...currentSettings, accent })
+    }
+
+    const form = useForm<ProfileFormValues>({
+        resolver: zodResolver(profileSchema),
+        defaultValues: {
+            full_name: '',
+            business_name: '',
+            phone: '',
+            avatar_url: '',
+        }
+    })
+
+    useEffect(() => {
+        if (profile) {
+            form.reset({
+                full_name: profile.full_name || '',
+                business_name: profile.business_name || '',
+                phone: profile.phone || '',
+                avatar_url: profile.avatar_url || '',
+            })
+        }
+    }, [profile, form])
+
+    const onSubmit = (data: ProfileFormValues) => {
+        updateProfile.mutate(data)
     }
 
     return (
@@ -132,13 +175,90 @@ export default function SettingsPage() {
                 <TabsContent value="account">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Account</CardTitle>
+                            <CardTitle>Profile</CardTitle>
                             <CardDescription>
-                                Manage your account settings.
+                                Manage your public profile details.
                             </CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-sm text-muted-foreground">Account settings coming soon.</p>
+                            {isProfileLoading ? (
+                                <div className="flex justify-center p-6">
+                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                </div>
+                            ) : (
+                                <Form {...form}>
+                                    <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                                        <FormField
+                                            control={form.control}
+                                            name="avatar_url"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Profile Picture</FormLabel>
+                                                    <FormControl>
+                                                        <AvatarUpload
+                                                            value={field.value}
+                                                            onChange={field.onChange}
+                                                            name={form.watch('full_name')}
+                                                        />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <FormField
+                                                control={form.control}
+                                                name="full_name"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Full Name</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="John Doe" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+
+                                            <FormField
+                                                control={form.control}
+                                                name="phone"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Phone Number</FormLabel>
+                                                        <FormControl>
+                                                            <Input placeholder="+1234567890" {...field} />
+                                                        </FormControl>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        <FormField
+                                            control={form.control}
+                                            name="business_name"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Business Name</FormLabel>
+                                                    <FormControl>
+                                                        <Input placeholder="Acme Inc." {...field} />
+                                                    </FormControl>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
+                                        <div className="flex justify-end">
+                                            <Button type="submit" disabled={updateProfile.isPending}>
+                                                {updateProfile.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                                Save Changes
+                                            </Button>
+                                        </div>
+                                    </form>
+                                </Form>
+                            )}
                         </CardContent>
                     </Card>
                 </TabsContent>
