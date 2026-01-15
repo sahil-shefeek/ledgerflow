@@ -1,4 +1,4 @@
-import { useContacts } from '@/hooks/useContacts'
+import { Contact, useContacts } from '@/hooks/useContacts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatDistanceToNow } from 'date-fns'
@@ -14,11 +14,32 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Users } from 'lucide-react'
 import { Skeleton } from '@/components/ui/skeleton'
 
-export function ContactList() {
-    const { data: contacts, isLoading, error } = useContacts()
+interface ContactListProps {
+    contacts?: Contact[]
+    isLoading?: boolean
+    title?: string
+    showAddButton?: boolean
+    onContactClick?: (contact: Contact) => void
+    emptyMessage?: string
+    emptyDescription?: string
+}
+
+export function ContactList({
+    contacts: propContacts,
+    isLoading: propIsLoading,
+    title = "Contacts",
+    showAddButton = true,
+    onContactClick,
+    emptyMessage = "No contacts found",
+    emptyDescription = "Try adjusting your search or filters."
+}: ContactListProps = {}) {
+    const { data: fetchedContacts, isLoading: isQueryLoading, error } = useContacts()
     const [searchQuery, setSearchQuery] = useState('')
     const [filter, setFilter] = useState('ALL')
     const router = useRouter()
+
+    const contacts = propContacts ?? fetchedContacts
+    const isLoading = propIsLoading ?? isQueryLoading
 
     if (isLoading) {
         return (
@@ -60,7 +81,7 @@ export function ContactList() {
         )
     }
 
-    if (error) {
+    if (error && !propContacts) {
         return (
             <div className="flex h-40 items-center justify-center text-destructive">
                 Error loading contacts
@@ -70,6 +91,7 @@ export function ContactList() {
 
     const filteredContacts = contacts?.filter(contact => {
         const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase())
+        // Only apply type filter if we are not in simple mode or if the contact has a type
         const matchesFilter =
             filter === 'ALL' ? true :
                 contact.type === filter
@@ -77,23 +99,33 @@ export function ContactList() {
         return matchesSearch && matchesFilter
     })
 
+    const handleContactClick = (contact: Contact) => {
+        if (onContactClick) {
+            onContactClick(contact)
+        } else {
+            router.push(`/dashboard/ledger/${contact.id}`)
+        }
+    }
+
     return (
         <Card className="h-full border-0 shadow-none">
             <CardHeader className="px-4 pb-2 space-y-4">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl font-bold">Contacts</CardTitle>
-                    <AddContactDrawer>
-                        <Button size="sm">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add New
-                        </Button>
-                    </AddContactDrawer>
+                    <CardTitle className="text-xl font-bold">{title}</CardTitle>
+                    {showAddButton && (
+                        <AddContactDrawer>
+                            <Button size="sm">
+                                <Plus className="mr-2 h-4 w-4" />
+                                Add New
+                            </Button>
+                        </AddContactDrawer>
+                    )}
                 </div>
 
                 <div className="relative">
                     <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                        placeholder="Search contacts..."
+                        placeholder="Search..."
                         className="pl-8"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
@@ -114,9 +146,9 @@ export function ContactList() {
                                 <EmptyMedia variant="icon">
                                     <Users />
                                 </EmptyMedia>
-                                <EmptyTitle>No contacts found</EmptyTitle>
+                                <EmptyTitle>{emptyMessage}</EmptyTitle>
                                 <EmptyDescription>
-                                    Try adjusting your search or filters.
+                                    {emptyDescription}
                                 </EmptyDescription>
                             </EmptyHeader>
                         </Empty>
@@ -125,7 +157,7 @@ export function ContactList() {
                             <div
                                 key={contact.id}
                                 className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer"
-                                onClick={() => router.push(`/dashboard/ledger/${contact.id}`)}
+                                onClick={() => handleContactClick(contact)}
                             >
                                 <div className="flex items-center gap-3">
                                     <Avatar className="border border-muted">
@@ -133,11 +165,18 @@ export function ContactList() {
                                         <AvatarFallback>{contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div>
-                                        <div className="font-medium">{contact.name}</div>
+                                        <div className="font-medium flex items-center gap-2">
+                                            {contact.name}
+                                            {contact.transaction_count > 0 && (
+                                                <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full font-normal">
+                                                    {contact.transaction_count} txns
+                                                </span>
+                                            )}
+                                        </div>
                                         <div className="text-xs text-muted-foreground">
-                                            {formatDistanceToNow(new Date(contact.last_transaction_at), {
+                                            {contact.last_transaction_at ? formatDistanceToNow(new Date(contact.last_transaction_at), {
                                                 addSuffix: true,
-                                            })}
+                                            }) : 'No transactions'}
                                         </div>
                                     </div>
                                 </div>

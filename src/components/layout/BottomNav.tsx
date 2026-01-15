@@ -27,6 +27,12 @@ export function BottomNav() {
         },
 
         {
+            label: 'People',
+            href: '/dashboard/people',
+            icon: Users,
+            showIn: 'personal',
+        },
+        {
             label: 'Analytics',
             href: '/dashboard/analytics',
             icon: PieChart,

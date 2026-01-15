@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import { Loader2, Minus, Plus } from 'lucide-react'
-import { useContacts } from '@/hooks/useContacts'
+import { useContacts, usePersonalPeople } from '@/hooks/useContacts'
 import { useAppStore } from '@/store/useAppStore'
 import { useBudgets } from '@/hooks/useBudgets'
 import {
@@ -56,7 +56,9 @@ export function TransactionDrawer({
     hideTrigger?: boolean
 } = {}) {
     const { mode } = useAppStore()
-    const { data: contacts } = useContacts()
+    const { data: businessContacts } = useContacts()
+    const { data: personalContacts } = usePersonalPeople()
+    const contacts = mode === 'business' ? businessContacts : personalContacts
     const { data: budgets } = useBudgets() // We use budgets to get categories
     const { data: accounts } = useAccounts()
     const { mutate: addTransaction, isPending: isAdding } = useAddTransaction()
@@ -235,6 +237,32 @@ export function TransactionDrawer({
                                     />
                                 ) : (
                                     <>
+                                        {/* Contact Selection for Personal Mode (Optional) */}
+                                        <FormField
+                                            control={form.control}
+                                            name="contact_id"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Person (Optional)</FormLabel>
+                                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                        <FormControl>
+                                                            <SelectTrigger>
+                                                                <SelectValue placeholder="Select person" />
+                                                            </SelectTrigger>
+                                                        </FormControl>
+                                                        <SelectContent>
+                                                            {contacts?.map((contact) => (
+                                                                <SelectItem key={contact.id} value={contact.id}>
+                                                                    {contact.name}
+                                                                </SelectItem>
+                                                            ))}
+                                                        </SelectContent>
+                                                    </Select>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+
                                         {flow === 'OUT' && (
                                             <FormField
                                                 control={form.control}

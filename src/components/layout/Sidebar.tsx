@@ -14,6 +14,7 @@ import {
     Sun,
     Briefcase,
     Wallet,
+    List,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
@@ -40,7 +41,12 @@ export function Sidebar() {
             href: '/dashboard',
             icon: LayoutDashboard,
         },
-
+        {
+            label: 'People',
+            href: '/dashboard/people',
+            icon: Users,
+            showIn: 'personal',
+        },
         {
             label: 'Analytics',
             href: '/dashboard/analytics',
@@ -50,7 +56,7 @@ export function Sidebar() {
         {
             label: 'Manage Categories',
             href: '/dashboard/categories',
-            icon: Users,
+            icon: List,
             showIn: 'personal',
         },
         {
