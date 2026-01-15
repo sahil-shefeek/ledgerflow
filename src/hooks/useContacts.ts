@@ -11,6 +11,7 @@ export interface Contact {
     net_balance: number
     last_transaction_at: string
     business_id: string
+    image_url: string | null
 }
 
 export function useContacts() {
@@ -41,7 +42,7 @@ export function useAddContact() {
     const { currentBusinessId } = useAppStore()
 
     return useMutation({
-        mutationFn: async (newContact: { name: string; phone?: string; type: Contact['type'] }) => {
+        mutationFn: async (newContact: { name: string; phone?: string; type: Contact['type']; image_url?: string }) => {
             if (!currentBusinessId) throw new Error('No business selected')
 
             const { data, error } = await supabase

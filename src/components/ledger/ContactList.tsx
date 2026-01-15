@@ -128,8 +128,8 @@ export function ContactList() {
                                 onClick={() => router.push(`/dashboard/ledger/${contact.id}`)}
                             >
                                 <div className="flex items-center gap-3">
-                                    <Avatar>
-                                        <AvatarImage src={`https://avatar.vercel.sh/${contact.name}`} />
+                                    <Avatar className="border border-muted">
+                                        <AvatarImage src={contact.image_url || undefined} className="object-cover" />
                                         <AvatarFallback>{contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                                     </Avatar>
                                     <div>

@@ -26,6 +26,7 @@ create table public.contacts (
   user_id uuid references public.profiles(id) on delete cascade not null,
   business_id uuid references public.businesses(id) on delete cascade,
   name text not null,
+  image_url text,
   phone text,
   type text check (type in ('CUSTOMER', 'SUPPLIER', 'OTHER')) default 'CUSTOMER',
   net_balance numeric default 0.00,

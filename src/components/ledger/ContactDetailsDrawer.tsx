@@ -9,6 +9,7 @@ import {
     DrawerHeader,
     DrawerTitle,
 } from '@/components/ui/drawer'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Contact } from '@/hooks/useContacts'
 import { format } from 'date-fns'
@@ -54,9 +55,10 @@ export function ContactDetailsDrawer({ contact, open, onOpenChange }: ContactDet
                     </DrawerHeader>
                     <div className="p-4 space-y-6">
                         <div className="flex flex-col items-center justify-center gap-2">
-                            <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center">
-                                <User className="h-10 w-10 text-muted-foreground" />
-                            </div>
+                            <Avatar className="h-20 w-20 border-2 border-muted">
+                                <AvatarImage src={contact.image_url || ''} alt={contact.name} className="object-cover" />
+                                <AvatarFallback className="text-2xl">{contact.name.charAt(0)}</AvatarFallback>
+                            </Avatar>
                             <div className="text-center">
                                 <p className="text-2xl font-bold text-primary">
                                     {contact.net_balance < 0 ? '-' : ''}₹{Math.abs(contact.net_balance)}

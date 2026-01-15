@@ -15,6 +15,7 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Loader2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
 type SortOption = 'LATEST' | 'OLDEST' | 'HIGHEST' | 'LOWEST'
@@ -118,7 +119,13 @@ export default function LedgerPage() {
                 <Button variant="ghost" size="icon" onClick={() => router.back()}>
                     <ArrowLeft className="h-4 w-4" />
                 </Button>
-                <h1 className="text-2xl font-bold tracking-tight">{contact.name}</h1>
+                <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10 border border-muted">
+                        <AvatarImage src={contact.image_url || undefined} alt={contact.name} className="object-cover" />
+                        <AvatarFallback>{contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                    <h1 className="text-2xl font-bold tracking-tight">{contact.name}</h1>
+                </div>
             </div>
 
             <Card>

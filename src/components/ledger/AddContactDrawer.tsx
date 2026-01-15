@@ -11,11 +11,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAddContact } from '@/hooks/useContacts'
 import { Loader2, Plus } from 'lucide-react'
+import { AvatarUpload } from '@/components/ui/avatar-upload'
 
 const contactSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
     phone: z.string().optional(),
     type: z.enum(['CUSTOMER', 'SUPPLIER', 'OTHER']),
+    image_url: z.string().optional(),
 })
 
 interface AddContactDrawerProps {
@@ -38,6 +40,7 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
             name: '',
             phone: '',
             type: 'CUSTOMER',
+            image_url: '',
         },
     })
 
@@ -61,6 +64,24 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                     <div className="p-4 pb-8">
                         <Form {...form}>
                             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                                <FormField
+                                    control={form.control}
+                                    name="image_url"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Photo</FormLabel>
+                                            <FormControl>
+                                                <AvatarUpload
+                                                    value={field.value}
+                                                    onChange={field.onChange}
+                                                    name={form.watch('name')}
+                                                    folder="contacts"
+                                                />
+                                            </FormControl>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <FormField
                                     control={form.control}
                                     name="name"
@@ -118,6 +139,6 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                     </div>
                 </div>
             </DrawerContent>
-        </Drawer>
+        </Drawer >
     )
 }

@@ -227,6 +227,7 @@ export default function SettingsPage() {
                                                             value={field.value}
                                                             onChange={field.onChange}
                                                             name={form.watch('full_name')}
+                                                            folder="profiles"
                                                         />
                                                     </FormControl>
                                                     <FormMessage />

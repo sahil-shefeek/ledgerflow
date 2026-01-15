@@ -17,9 +17,10 @@ interface AvatarUploadProps {
     onChange?: (url: string) => void
     disabled?: boolean
     name?: string
+    folder?: string
 }
 
-export function AvatarUpload({ value, onChange, disabled, name }: AvatarUploadProps) {
+export function AvatarUpload({ value, onChange, disabled, name, folder = 'profiles' }: AvatarUploadProps) {
     const [uploading, setUploading] = useState(false)
     const [imageSrc, setImageSrc] = useState<string | null>(null)
     const [crop, setCrop] = useState({ x: 0, y: 0 })
@@ -77,7 +78,8 @@ export function AvatarUpload({ value, onChange, disabled, name }: AvatarUploadPr
             if (!user) throw new Error('Not authenticated')
 
             const fileExt = 'jpeg' // We always output jpeg from canvas
-            const filePath = `${user.id}/${Math.random()}.${fileExt}`
+            // Use folder prop here
+            const filePath = `${user.id}/${folder}/${Math.random()}.${fileExt}`
 
             const { error: uploadError } = await supabase.storage
                 .from('avatars')
@@ -92,8 +94,8 @@ export function AvatarUpload({ value, onChange, disabled, name }: AvatarUploadPr
                 .from('avatars')
                 .getPublicUrl(filePath)
 
+            // Just call onChange with the new URL, do NOT update profile directly
             onChange?.(publicUrl)
-            toast.success('Avatar updated successfully')
             setIsDialogOpen(false)
         } catch (error: any) {
             console.error('Error uploading avatar:', error)
@@ -108,7 +110,7 @@ export function AvatarUpload({ value, onChange, disabled, name }: AvatarUploadPr
         <div className="flex flex-col items-center gap-4">
             <div className="relative group cursor-pointer" onClick={() => !disabled && !uploading && fileInputRef.current?.click()}>
                 <Avatar className="w-24 h-24 border-2 border-muted">
-                    <AvatarImage src={value || ''} alt={name || 'User avatar'} className="object-cover" />
+                    <AvatarImage src={value || undefined} alt={name || 'User avatar'} className="object-cover" />
                     <AvatarFallback>{name?.charAt(0) || 'U'}</AvatarFallback>
                 </Avatar>
 
