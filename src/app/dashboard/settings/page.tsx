@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { useAppStore } from '@/store/useAppStore'
-import { Moon, Sun, Check, Loader2 } from 'lucide-react'
+import { Moon, Sun, Check, Loader2, User, Building2, Phone, Mail, Pencil, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -14,8 +14,9 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useProfile, Profile } from '@/hooks/use-profile'
 import { AvatarUpload } from '@/components/ui/avatar-upload'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const ACCENT_COLORS = [
     { name: 'Blue', value: 'blue', class: 'bg-blue-500' },
@@ -28,9 +29,9 @@ const ACCENT_COLORS = [
 
 const profileSchema = z.object({
     full_name: z.string().min(2, 'Name must be at least 2 characters'),
-    business_name: z.string().optional(),
-    phone: z.string().optional(),
-    avatar_url: z.string().optional(),
+    business_name: z.string().optional().or(z.literal('')),
+    phone: z.string().optional().or(z.literal('')),
+    avatar_url: z.string().optional().or(z.literal('')),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -38,6 +39,7 @@ type ProfileFormValues = z.infer<typeof profileSchema>
 export default function SettingsPage() {
     const { mode, themeSettings, updateThemeSettings, syncThemes, setSyncThemes } = useAppStore()
     const { profile, isLoading: isProfileLoading, updateProfile } = useProfile()
+    const [isEditing, setIsEditing] = useState(false)
 
     // Fallback if themeSettings is not yet loaded or structure is missing
     const currentSettings = themeSettings?.[mode] || { theme: mode === 'business' ? 'light' : 'dark', accent: mode === 'business' ? 'blue' : 'green' }
@@ -57,9 +59,11 @@ export default function SettingsPage() {
             business_name: '',
             phone: '',
             avatar_url: '',
-        }
+        },
+        mode: 'onChange' // Enable dirty checking on change
     })
 
+    // Reset form when profile loads or when entering edit mode
     useEffect(() => {
         if (profile) {
             form.reset({
@@ -69,10 +73,26 @@ export default function SettingsPage() {
                 avatar_url: profile.avatar_url || '',
             })
         }
-    }, [profile, form])
+    }, [profile, form, isEditing])
 
     const onSubmit = (data: ProfileFormValues) => {
-        updateProfile.mutate(data)
+        updateProfile.mutate(data, {
+            onSuccess: () => {
+                setIsEditing(false)
+            }
+        })
+    }
+
+    const handleCancel = () => {
+        setIsEditing(false)
+        if (profile) {
+            form.reset({
+                full_name: profile.full_name || '',
+                business_name: profile.business_name || '',
+                phone: profile.phone || '',
+                avatar_url: profile.avatar_url || '',
+            })
+        }
     }
 
     return (
@@ -174,18 +194,26 @@ export default function SettingsPage() {
                 </TabsContent>
                 <TabsContent value="account">
                     <Card>
-                        <CardHeader>
-                            <CardTitle>Profile</CardTitle>
-                            <CardDescription>
-                                Manage your public profile details.
-                            </CardDescription>
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                            <div className="flex flex-col space-y-1.5">
+                                <CardTitle>Profile</CardTitle>
+                                <CardDescription>
+                                    Manage your public profile details.
+                                </CardDescription>
+                            </div>
+                            {!isEditing && !isProfileLoading && (
+                                <Button onClick={() => setIsEditing(true)} size="sm" variant="outline">
+                                    <Pencil className="mr-2 h-4 w-4" />
+                                    Edit Profile
+                                </Button>
+                            )}
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="pt-6">
                             {isProfileLoading ? (
                                 <div className="flex justify-center p-6">
                                     <Loader2 className="h-6 w-6 animate-spin" />
                                 </div>
-                            ) : (
+                            ) : isEditing ? (
                                 <Form {...form}>
                                     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
                                         <FormField
@@ -250,14 +278,57 @@ export default function SettingsPage() {
                                             )}
                                         />
 
-                                        <div className="flex justify-end">
-                                            <Button type="submit" disabled={updateProfile.isPending}>
+                                        <div className="flex items-center justify-end gap-2">
+                                            <Button type="button" variant="ghost" onClick={handleCancel} disabled={updateProfile.isPending}>
+                                                Cancel
+                                            </Button>
+                                            <Button
+                                                type="submit"
+                                                disabled={updateProfile.isPending || !form.formState.isDirty}
+                                            >
                                                 {updateProfile.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                 Save Changes
                                             </Button>
                                         </div>
                                     </form>
                                 </Form>
+                            ) : (
+                                <div className="space-y-8">
+                                    <div className="flex items-center gap-6">
+                                        <Avatar className="h-24 w-24 border-2 border-muted">
+                                            <AvatarImage src={profile?.avatar_url || ''} alt={profile?.full_name || 'User'} className="object-cover" />
+                                            <AvatarFallback className="text-lg bg-primary/10 text-primary">
+                                                {profile?.full_name?.charAt(0) || 'U'}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div className="space-y-1">
+                                            <h3 className="text-2xl font-semibold leading-none tracking-tight">{profile?.full_name || 'No Name Set'}</h3>
+                                            <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid gap-6 md:grid-cols-2">
+                                        <div className="space-y-3">
+                                            <Label className="text-xs font-medium uppercase text-muted-foreground">Contact Information</Label>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <User className="h-4 w-4 text-muted-foreground" />
+                                                <span>{profile?.full_name || 'Not set'}</span>
+                                            </div>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <Phone className="h-4 w-4 text-muted-foreground" />
+                                                <span>{profile?.phone || 'Not set'}</span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-3">
+                                            <Label className="text-xs font-medium uppercase text-muted-foreground">Business Details</Label>
+                                            <div className="flex items-center gap-3 text-sm">
+                                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                                <span>{profile?.business_name || 'Not set'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </CardContent>
                     </Card>

@@ -10,6 +10,7 @@ export type Profile = {
     phone: string | null
     avatar_url: string | null
     currency_symbol: string
+    email?: string
 }
 
 export function useProfile() {
@@ -29,7 +30,7 @@ export function useProfile() {
                 .single()
 
             if (error) throw error
-            return data as Profile
+            return { ...data, email: user.email } as Profile
         }
     })
 
