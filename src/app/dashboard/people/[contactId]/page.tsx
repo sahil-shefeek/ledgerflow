@@ -35,7 +35,7 @@ interface Transaction {
 export default function PersonDetailsPage() {
     const params = useParams()
     const router = useRouter()
-    const contactId = params.id as string
+    const contactId = params.contactId as string
 
     // Fetch all personal people - optimization: could fetch single, but this is fine for now
     const { data: contacts } = usePersonalPeople()

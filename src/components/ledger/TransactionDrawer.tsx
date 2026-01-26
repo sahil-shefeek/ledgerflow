@@ -86,7 +86,7 @@ export function TransactionDrawer({
     useEffect(() => {
         if (initialData) {
             form.reset({
-                amount: initialData.amount,
+                amount: initialData.amount ?? ('' as unknown as number),
                 name: initialData.name || '',
                 note: initialData.note || '',
                 date: initialData.date ? new Date(initialData.date) : new Date(),

@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAddContact } from '@/hooks/useContacts'
 import { Loader2, Plus } from 'lucide-react'
+import { useAppStore } from '@/store/useAppStore'
 import { AvatarUpload } from '@/components/ui/avatar-upload'
 
 const contactSchema = z.object({
@@ -27,6 +28,7 @@ interface AddContactDrawerProps {
 }
 
 export function AddContactDrawer({ children, open, onOpenChange }: AddContactDrawerProps) {
+    const { mode } = useAppStore()
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : internalOpen
@@ -39,13 +41,19 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
         defaultValues: {
             name: '',
             phone: '',
-            type: 'CUSTOMER',
+            type: mode === 'personal' ? 'OTHER' : 'CUSTOMER',
             image_url: '',
         },
     })
 
     function onSubmit(values: z.infer<typeof contactSchema>) {
-        addContact(values, {
+        // Force type to OTHER for personal contacts to satisfy DB constraint but hide semantic meaning
+        const submissionValues = {
+            ...values,
+            type: mode === 'personal' ? 'OTHER' as const : values.type
+        }
+
+        addContact(submissionValues, {
             onSuccess: () => {
                 setIsOpen?.(false)
                 form.reset()
@@ -59,7 +67,7 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle>Add New Contact</DrawerTitle>
+                        <DrawerTitle>{mode === 'personal' ? 'Add New Person' : 'Add New Contact'}</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-8">
                         <Form {...form}>
@@ -108,31 +116,33 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                                         </FormItem>
                                     )}
                                 />
-                                <FormField
-                                    control={form.control}
-                                    name="type"
-                                    render={({ field }) => (
-                                        <FormItem>
-                                            <FormLabel>Type</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl>
-                                                    <SelectTrigger>
-                                                        <SelectValue placeholder="Select type" />
-                                                    </SelectTrigger>
-                                                </FormControl>
-                                                <SelectContent>
-                                                    <SelectItem value="CUSTOMER">Customer</SelectItem>
-                                                    <SelectItem value="SUPPLIER">Supplier</SelectItem>
-                                                    <SelectItem value="OTHER">Other</SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            <FormMessage />
-                                        </FormItem>
-                                    )}
-                                />
+                                {mode === 'business' && (
+                                    <FormField
+                                        control={form.control}
+                                        name="type"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Type</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select type" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        <SelectItem value="CUSTOMER">Customer</SelectItem>
+                                                        <SelectItem value="SUPPLIER">Supplier</SelectItem>
+                                                        <SelectItem value="OTHER">Other</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                )}
                                 <Button type="submit" className="w-full" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Add Contact
+                                    {mode === 'personal' ? 'Add Person' : 'Add Contact'}
                                 </Button>
                             </form>
                         </Form>

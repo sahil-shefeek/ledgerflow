@@ -22,6 +22,7 @@ interface ContactListProps {
     onContactClick?: (contact: Contact) => void
     emptyMessage?: string
     emptyDescription?: string
+    variant?: 'business' | 'personal'
 }
 
 export function ContactList({
@@ -31,7 +32,8 @@ export function ContactList({
     showAddButton = true,
     onContactClick,
     emptyMessage = "No contacts found",
-    emptyDescription = "Try adjusting your search or filters."
+    emptyDescription = "Try adjusting your search or filters.",
+    variant = 'business'
 }: ContactListProps = {}) {
     const { data: fetchedContacts, isLoading: isQueryLoading, error } = useContacts()
     const [searchQuery, setSearchQuery] = useState('')
@@ -42,6 +44,9 @@ export function ContactList({
     const isLoading = propIsLoading ?? isQueryLoading
 
     if (isLoading) {
+        // ... (skeleton loading remains same, omitting for brevity but replace_file_content needs full block if inside)
+        // actually I can just replace the interface and props destructuring part, and the render part.
+        // But let's stick to the plan. I will be careful with lines.
         return (
             <Card className="h-full border-0 shadow-none">
                 <CardHeader className="px-4 pb-2 space-y-4">
@@ -132,11 +137,13 @@ export function ContactList({
                     />
                 </div>
 
-                <ToggleGroup type="single" value={filter} onValueChange={(val) => val && setFilter(val)} className="justify-start w-full">
-                    <ToggleGroupItem value="ALL" className="flex-1">All</ToggleGroupItem>
-                    <ToggleGroupItem value="CUSTOMER" className="flex-1">Customers</ToggleGroupItem>
-                    <ToggleGroupItem value="SUPPLIER" className="flex-1">Suppliers</ToggleGroupItem>
-                </ToggleGroup>
+                {variant === 'business' && (
+                    <ToggleGroup type="single" value={filter} onValueChange={(val) => val && setFilter(val)} className="justify-start w-full">
+                        <ToggleGroupItem value="ALL" className="flex-1">All</ToggleGroupItem>
+                        <ToggleGroupItem value="CUSTOMER" className="flex-1">Customers</ToggleGroupItem>
+                        <ToggleGroupItem value="SUPPLIER" className="flex-1">Suppliers</ToggleGroupItem>
+                    </ToggleGroup>
+                )}
             </CardHeader>
             <CardContent className="p-0">
                 <div className="divide-y">

@@ -3,6 +3,7 @@
 import { ContactList } from '@/components/ledger/ContactList'
 import { Contact, usePersonalPeople } from '@/hooks/useContacts'
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Filter, SortAsc } from 'lucide-react'
 
@@ -11,6 +12,7 @@ type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
 type SortOption = 'LATEST' | 'MOST_ACTIVE'
 
 export default function PeoplePage() {
+    const router = useRouter()
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')
 
@@ -60,6 +62,10 @@ export default function PeoplePage() {
                     emptyMessage="No people found"
                     emptyDescription={timeFilter !== 'ALL' ? "Try changing the time filter." : "Add someone to start tracking."}
                     showAddButton={true}
+                    variant="personal"
+                    onContactClick={(contact) => {
+                        router.push(`/dashboard/people/${contact.id}`)
+                    }}
                 />
             </div>
         </div>
