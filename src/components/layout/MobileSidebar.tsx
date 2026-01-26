@@ -4,9 +4,10 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/useAppStore'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
-import { Briefcase, LogOut, Menu, Wallet, Settings, Users, LayoutDashboard } from 'lucide-react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Briefcase, LogOut, Menu, Wallet, Settings, Users, LayoutDashboard, PieChart, List } from 'lucide-react'
 import { useState } from 'react'
+import { cn } from '@/lib/utils'
 
 import { useProfile } from '@/hooks/use-profile'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -14,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 export function MobileSidebar() {
     const { mode, toggleMode } = useAppStore()
     const router = useRouter()
+    const pathname = usePathname()
     const supabase = createClient()
     const [open, setOpen] = useState(false)
     const { profile } = useProfile()
@@ -29,6 +31,37 @@ export function MobileSidebar() {
         router.push('/dashboard')
         setOpen(false)
     }
+
+    const navItems = [
+        {
+            label: 'Dashboard',
+            href: '/dashboard',
+            icon: LayoutDashboard,
+        },
+        {
+            label: 'People',
+            href: '/dashboard/people',
+            icon: Users,
+            showIn: 'personal',
+        },
+        {
+            label: 'Analytics',
+            href: '/dashboard/analytics',
+            icon: PieChart,
+            showIn: 'personal',
+        },
+        {
+            label: 'Manage Categories',
+            href: '/dashboard/categories',
+            icon: List,
+            showIn: 'personal',
+        },
+        {
+            label: 'Settings',
+            href: '/dashboard/settings',
+            icon: Settings,
+        },
+    ]
 
     return (
         <Sheet open={open} onOpenChange={setOpen}>
@@ -51,18 +84,33 @@ export function MobileSidebar() {
                         </div>
                     </div>
                 </SheetHeader>
-                <div className="flex flex-col gap-4 mt-4">
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2"
-                        onClick={() => {
-                            router.push('/dashboard')
-                            setOpen(false)
-                        }}
-                    >
-                        <LayoutDashboard className="h-4 w-4" />
-                        <span>Dashboard</span>
-                    </Button>
+                <div className="flex flex-col gap-2 mt-4">
+                    {navItems.map((item) => {
+                        if (item.showIn && item.showIn !== mode) return null
+                        const Icon = item.icon
+                        const isActive = pathname === item.href
+
+                        return (
+                            <Button
+                                key={item.href}
+                                variant={isActive ? "secondary" : "ghost"}
+                                className={cn(
+                                    "w-full justify-start gap-2",
+                                    isActive && "bg-secondary text-secondary-foreground"
+                                )}
+                                onClick={() => {
+                                    router.push(item.href)
+                                    setOpen(false)
+                                }}
+                            >
+                                <Icon className="h-4 w-4" />
+                                <span>{item.label}</span>
+                            </Button>
+                        )
+                    })}
+
+                    <div className="my-2 border-t" />
+
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-2"
@@ -80,30 +128,7 @@ export function MobileSidebar() {
                             </>
                         )}
                     </Button>
-                    <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2"
-                        onClick={() => {
-                            router.push('/dashboard/settings')
-                            setOpen(false)
-                        }}
-                    >
-                        <Settings className="h-4 w-4" />
-                        <span>Settings</span>
-                    </Button>
-                    {mode === 'personal' && (
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start gap-2"
-                            onClick={() => {
-                                router.push('/dashboard/categories')
-                                setOpen(false)
-                            }}
-                        >
-                            <Users className="h-4 w-4" />
-                            <span>Manage Categories</span>
-                        </Button>
-                    )}
+
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-2 text-destructive hover:text-destructive hover:bg-destructive/10"
