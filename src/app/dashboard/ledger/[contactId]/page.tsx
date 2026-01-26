@@ -116,9 +116,6 @@ export default function LedgerPage() {
     return (
         <div className="space-y-4">
             <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                    <ArrowLeft className="h-4 w-4" />
-                </Button>
                 <div className="flex items-center gap-3">
                     <Avatar className="h-10 w-10 border border-muted">
                         <AvatarImage src={contact.image_url || undefined} alt={contact.name} className="object-cover" />

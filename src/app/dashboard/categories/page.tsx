@@ -5,7 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Plus, MoreVertical, Edit, Trash2, EyeOff, CheckCircle2, Loader2, ArrowLeft } from 'lucide-react'
+import { Plus, MoreVertical, Edit, Trash2, EyeOff, CheckCircle2, Loader2 } from 'lucide-react'
 import { CategoryDrawer } from '@/components/finance/CategoryDrawer'
 import { CategoryActionDialog } from '@/components/finance/CategoryActionDialog'
 import {
@@ -59,9 +59,6 @@ export default function CategoriesPage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" onClick={() => router.back()}>
-                        <ArrowLeft className="h-4 w-4" />
-                    </Button>
                     <h1 className="text-2xl font-bold tracking-tight">Manage Categories</h1>
                 </div>
                 <CategoryDrawer>

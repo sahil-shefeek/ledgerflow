@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/useAppStore'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Briefcase, LogOut, Menu, Wallet, Settings, Users } from 'lucide-react'
+import { Briefcase, LogOut, Menu, Wallet, Settings, Users, LayoutDashboard } from 'lucide-react'
 import { useState } from 'react'
 
 import { useProfile } from '@/hooks/use-profile'
@@ -52,6 +52,17 @@ export function MobileSidebar() {
                     </div>
                 </SheetHeader>
                 <div className="flex flex-col gap-4 mt-4">
+                    <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2"
+                        onClick={() => {
+                            router.push('/dashboard')
+                            setOpen(false)
+                        }}
+                    >
+                        <LayoutDashboard className="h-4 w-4" />
+                        <span>Dashboard</span>
+                    </Button>
                     <Button
                         variant="ghost"
                         className="w-full justify-start gap-2"

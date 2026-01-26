@@ -18,7 +18,6 @@ import { AccountsList } from '@/components/finance/AccountsList'
 import { RecurringTransactionsList } from '@/components/finance/RecurringTransactionsList'
 import { Plus } from 'lucide-react'
 
-import { MobileSidebar } from '@/components/layout/MobileSidebar'
 import { BusinessSwitcher } from '@/components/layout/BusinessSwitcher'
 
 export default function DashboardPage() {
@@ -30,7 +29,6 @@ export default function DashboardPage() {
 
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                    <MobileSidebar />
                     {mode === 'business' ? (
                         <BusinessSwitcher />
                     ) : (
