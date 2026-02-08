@@ -157,7 +157,7 @@ create or replace function update_contact_balance()
 returns trigger as $$
 begin
   -- Logic for INSERT
-  if (TG_OP = 'INSERT' AND NEW.mode = 'BUSINESS') then
+  if (TG_OP = 'INSERT' AND NEW.contact_id IS NOT NULL) then
     update contacts
     set 
       net_balance = net_balance + (case when NEW.flow = 'OUT' then NEW.amount else -NEW.amount end),
@@ -165,8 +165,27 @@ begin
     where id = NEW.contact_id;
   end if;
 
-  -- Logic for DELETE (Reverse the math)
-  if (TG_OP = 'DELETE' AND OLD.mode = 'BUSINESS') then
+  -- Logic for UPDATE
+  if (TG_OP = 'UPDATE') then
+    -- Reverse OLD impact
+    if (OLD.contact_id IS NOT NULL) then
+      update contacts
+      set net_balance = net_balance - (case when OLD.flow = 'OUT' then OLD.amount else -OLD.amount end)
+      where id = OLD.contact_id;
+    end if;
+
+    -- Apply NEW impact
+    if (NEW.contact_id IS NOT NULL) then
+      update contacts
+      set 
+        net_balance = net_balance + (case when NEW.flow = 'OUT' then NEW.amount else -NEW.amount end),
+        last_transaction_at = NEW.date
+      where id = NEW.contact_id;
+    end if;
+  end if;
+
+  -- Logic for DELETE
+  if (TG_OP = 'DELETE' AND OLD.contact_id IS NOT NULL) then
     update contacts
     set net_balance = net_balance - (case when OLD.flow = 'OUT' then OLD.amount else -OLD.amount end)
     where id = OLD.contact_id;
@@ -178,7 +197,7 @@ $$ language plpgsql;
 
 -- Attach Trigger to Transactions Table
 create trigger trigger_update_balance
-after insert or delete on transactions
+after insert or update or delete on transactions
 for each row
 execute function update_contact_balance();
 
@@ -319,7 +338,24 @@ begin
     where id = NEW.account_id;
   end if;
 
-  -- Logic for DELETE (Reverse the math)
+  -- Logic for UPDATE
+  if (TG_OP = 'UPDATE') then
+    -- Reverse OLD
+    if (OLD.mode = 'PERSONAL' AND OLD.account_id IS NOT NULL) then
+      update accounts
+      set balance = balance - (case when OLD.flow = 'IN' then OLD.amount else -OLD.amount end)
+      where id = OLD.account_id;
+    end if;
+
+    -- Apply NEW
+    if (NEW.mode = 'PERSONAL' AND NEW.account_id IS NOT NULL) then
+      update accounts
+      set balance = balance + (case when NEW.flow = 'IN' then NEW.amount else -NEW.amount end)
+      where id = NEW.account_id;
+    end if;
+  end if;
+
+  -- Logic for DELETE
   if (TG_OP = 'DELETE' AND OLD.mode = 'PERSONAL' AND OLD.account_id IS NOT NULL) then
     update accounts
     set balance = balance - (case when OLD.flow = 'IN' then OLD.amount else -OLD.amount end)
@@ -332,7 +368,7 @@ $$ language plpgsql;
 
 -- Attach Trigger to Transactions Table for Accounts
 create trigger trigger_update_account_balance
-after insert or delete on transactions
+after insert or update or delete on transactions
 for each row
 execute function update_account_balance();
 
