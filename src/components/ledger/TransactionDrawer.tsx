@@ -189,7 +189,10 @@ export function TransactionDrawer({
                         </Tabs>
 
                         <Form {...form}>
-                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                            <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                                console.log("Form Validation Errors:", errors)
+                                toast.error("Please check the form fields")
+                            })} className="space-y-4">
                                 <FormField
                                     control={form.control}
                                     name="amount"

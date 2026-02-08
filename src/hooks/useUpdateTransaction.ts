@@ -50,8 +50,6 @@ export function useUpdateTransaction() {
             queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
             queryClient.invalidateQueries({ queryKey: ['contacts'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
-            queryClient.invalidateQueries({ queryKey: ['budgets'] })
-            queryClient.invalidateQueries({ queryKey: ['analytics'] })
         },
         onError: (error) => {
             toast.error(`Failed to update: ${error.message}`)

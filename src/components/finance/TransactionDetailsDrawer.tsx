@@ -43,10 +43,10 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
             if (error) throw error
 
             toast.success('Transaction deleted')
+            queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
-            queryClient.invalidateQueries({ queryKey: ['contact-transactions'] })
+            queryClient.invalidateQueries({ queryKey: ['contacts'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
-            queryClient.invalidateQueries({ queryKey: ['budgets'] })
             onOpenChange(false)
         } catch (error) {
             toast.error('Failed to delete transaction')
