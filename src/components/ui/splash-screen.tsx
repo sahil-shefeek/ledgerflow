@@ -2,6 +2,7 @@
 
 import { motion, AnimatePresence } from 'framer-motion'
 import { Briefcase, Wallet } from 'lucide-react'
+import Image from 'next/image'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 
@@ -37,9 +38,16 @@ export function SplashScreen({ onComplete, variant = 'initial' }: { onComplete?:
                         transition={{ duration: 0.5 }}
                         className="flex flex-col items-center gap-4"
                     >
-                        <div className="h-20 w-20 rounded-2xl bg-primary flex items-center justify-center shadow-xl">
-                            <span className="text-primary-foreground font-bold text-4xl">LF</span>
+                        <div className="relative h-24 w-24">
+                            <Image
+                                src="/logo.png"
+                                alt="LedgerFlow Logo"
+                                fill
+                                className="object-contain"
+                                priority
+                            />
                         </div>
+                        <span className="text-3xl font-bold tracking-tight">LedgerFlow</span>
                     </motion.div>
                 ) : (
                     <motion.div
