@@ -9,6 +9,9 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 
+import { BusinessTransactionDrawer } from '@/components/business/BusinessTransactionDrawer'
+import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
+
 interface TransactionDetailsDrawerProps {
     transaction: {
         id: string
@@ -19,6 +22,7 @@ interface TransactionDetailsDrawerProps {
         note?: string
         category?: { name: string; icon: string } | null
         account?: { name: string } | null
+        mode: 'BUSINESS' | 'PERSONAL' // Added mode
     } | null
     open: boolean
     onOpenChange: (open: boolean) => void
@@ -29,6 +33,15 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
     const [isDeleting, setIsDeleting] = useState(false)
     const supabase = createClient()
     const queryClient = useQueryClient()
+    const [editOpen, setEditOpen] = useState(false)
+
+    const handleEdit = () => {
+        setEditOpen(true)
+        // onEdit is now optional or we can call it if needed, but we handle the drawer here.
+        // If the parent passed onEdit, we might still want to call it?
+        // Let's assume onEdit is used for other side effects if provided, but we don't rely on it for opening the drawer.
+        if (onEdit) onEdit(transaction)
+    }
 
     if (!transaction) return null
 
@@ -104,7 +117,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                             <Button
                                 variant="outline"
                                 className="flex-1"
-                                onClick={() => onEdit(transaction)}
+                                onClick={handleEdit}
                             >
                                 <Edit className="mr-2 h-4 w-4" />
                                 Edit
@@ -122,6 +135,22 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                     </div>
                 </div>
             </DrawerContent>
+            {/* Render the appropriate edit drawer based on mode */}
+            {transaction.mode === 'BUSINESS' ? (
+                <BusinessTransactionDrawer
+                    open={editOpen}
+                    onOpenChange={setEditOpen}
+                    initialData={transaction}
+                    hideTrigger={true}
+                />
+            ) : (
+                <PersonalTransactionDrawer
+                    open={editOpen}
+                    onOpenChange={setEditOpen}
+                    initialData={transaction}
+                    hideTrigger={true}
+                />
+            )}
         </Drawer>
     )
 }

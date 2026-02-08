@@ -8,7 +8,7 @@ import { ArrowLeft, Receipt } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatTransactionDate } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
-import { TransactionDrawer } from '@/components/ledger/TransactionDrawer'
+import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { TransactionDetailsDrawer } from '@/components/finance/TransactionDetailsDrawer'
 import { useState, useMemo } from 'react'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -30,6 +30,7 @@ interface Transaction {
     category?: { name: string; icon: string } | null
     account?: { name: string } | null
     name?: string
+    mode: 'BUSINESS' | 'PERSONAL'
 }
 
 export default function PersonDetailsPage() {
@@ -223,7 +224,7 @@ export default function PersonDetailsPage() {
                 )}
             </div>
 
-            <TransactionDrawer
+            <PersonalTransactionDrawer
                 initialData={{ contact_id: contactId }}
             />
 
@@ -231,18 +232,7 @@ export default function PersonDetailsPage() {
                 transaction={selectedTransaction}
                 open={detailsOpen}
                 onOpenChange={setDetailsOpen}
-                onEdit={(transaction) => {
-                    setEditingTransaction(transaction)
-                    setDetailsOpen(false)
-                    setEditOpen(true)
-                }}
-            />
-
-            <TransactionDrawer
-                open={editOpen}
-                onOpenChange={setEditOpen}
-                initialData={editingTransaction}
-                hideTrigger={true}
+                onEdit={() => { }} // No-op or remove prop from component definition if possible
             />
         </div>
     )

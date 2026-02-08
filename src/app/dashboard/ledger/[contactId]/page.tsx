@@ -8,7 +8,7 @@ import { ArrowLeft, Plus, Receipt, Filter, ArrowUpDown } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { formatTransactionDate } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
-import { TransactionDrawer } from '@/components/ledger/TransactionDrawer'
+import { BusinessTransactionDrawer } from '@/components/business/BusinessTransactionDrawer'
 import { TransactionDetailsDrawer } from '@/components/finance/TransactionDetailsDrawer'
 import { useState, useMemo } from 'react'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -30,6 +30,7 @@ interface Transaction {
     category?: { name: string; icon: string } | null
     account?: { name: string } | null
     name?: string // For contact transactions sometimes name is used?
+    mode: 'BUSINESS' | 'PERSONAL' // Added mode
 }
 
 export default function LedgerPage() {
@@ -218,7 +219,7 @@ export default function LedgerPage() {
                 )}
             </div>
 
-            <TransactionDrawer
+            <BusinessTransactionDrawer
                 initialData={{ contact_id: contactId }}
             />
 
@@ -226,18 +227,7 @@ export default function LedgerPage() {
                 transaction={selectedTransaction}
                 open={detailsOpen}
                 onOpenChange={setDetailsOpen}
-                onEdit={(transaction) => {
-                    setEditingTransaction(transaction)
-                    setDetailsOpen(false)
-                    setEditOpen(true)
-                }}
-            />
-
-            <TransactionDrawer
-                open={editOpen}
-                onOpenChange={setEditOpen}
-                initialData={editingTransaction}
-                hideTrigger={true}
+                onEdit={() => { }}
             />
         </div>
     )

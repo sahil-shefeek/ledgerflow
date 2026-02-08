@@ -8,7 +8,7 @@ import { TransactionDetailsDrawer } from './TransactionDetailsDrawer'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { TransactionDrawer } from '@/components/ledger/TransactionDrawer'
+import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns'
 
@@ -27,6 +27,7 @@ interface PersonalTransaction {
         name: string
         type: string
     } | null
+    mode: 'PERSONAL' | 'BUSINESS'
 }
 
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
@@ -56,6 +57,7 @@ export function PersonalTransactionList() {
                     date,
                     category_id,
                     account_id,
+                    mode,
                     category:categories(name, icon),
                     account:accounts(name, type)
                 `)
@@ -216,18 +218,7 @@ export function PersonalTransactionList() {
                 transaction={selectedTransaction}
                 open={detailsOpen}
                 onOpenChange={setDetailsOpen}
-                onEdit={(transaction) => {
-                    setEditingTransaction(transaction)
-                    setDetailsOpen(false)
-                    setEditOpen(true)
-                }}
-            />
-
-            <TransactionDrawer
-                open={editOpen}
-                onOpenChange={setEditOpen}
-                initialData={editingTransaction}
-                hideTrigger={true}
+                onEdit={() => { }}
             />
         </>
     )

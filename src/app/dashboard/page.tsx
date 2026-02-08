@@ -3,7 +3,8 @@
 import { useAppStore } from '@/store/useAppStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ContactList } from '@/components/ledger/ContactList'
-import { TransactionDrawer } from '@/components/ledger/TransactionDrawer'
+import { BusinessTransactionDrawer } from '@/components/business/BusinessTransactionDrawer'
+import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { AnalyticsDashboard } from '@/components/finance/AnalyticsDashboard'
 import { BudgetRow } from '@/components/finance/BudgetCard'
 import { GoalCard } from '@/components/finance/GoalCard'
@@ -47,6 +48,7 @@ export default function DashboardPage() {
                 <>
                     <BusinessSummary />
                     <ContactList />
+                    <BusinessTransactionDrawer />
                 </>
             ) : (
                 <div className="space-y-4">
@@ -62,10 +64,10 @@ export default function DashboardPage() {
                             <GoalsList />
                         </div>
                     </div>
+                    <PersonalTransactionDrawer />
                 </div>
             )
             }
-            <TransactionDrawer />
         </div >
     )
 }
