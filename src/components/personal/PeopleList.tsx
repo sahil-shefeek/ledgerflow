@@ -1,20 +1,21 @@
-import { Contact, useContacts } from '@/hooks/useContacts'
+'use client'
+
+import { usePersonalPeople } from '@/hooks/personal/usePersonalPeople'
+import { Contact } from '@/types'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { formatDistanceToNow } from 'date-fns'
 import { cn } from '@/lib/utils'
-import { Loader2, Plus, Search } from 'lucide-react'
+import { Plus, Search, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { AddContactDrawer } from './AddContactDrawer'
+import { AddPersonDrawer } from './AddPersonDrawer'
 import { Input } from '@/components/ui/input'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
-import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Users } from 'lucide-react'
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
 
-interface ContactListProps {
+interface PeopleListProps {
     contacts?: Contact[]
     isLoading?: boolean
     title?: string
@@ -22,31 +23,26 @@ interface ContactListProps {
     onContactClick?: (contact: Contact) => void
     emptyMessage?: string
     emptyDescription?: string
-    variant?: 'business' | 'personal'
 }
 
-export function ContactList({
+export function PeopleList({
     contacts: propContacts,
     isLoading: propIsLoading,
-    title = "Contacts",
+    title = "People",
     showAddButton = true,
     onContactClick,
-    emptyMessage = "No contacts found",
-    emptyDescription = "Try adjusting your search or filters.",
-    variant = 'business'
-}: ContactListProps = {}) {
-    const { data: fetchedContacts, isLoading: isQueryLoading, error } = useContacts()
+    emptyMessage = "No people found",
+    emptyDescription = "Add someone to start tracking.",
+}: PeopleListProps = {}) {
+    // Fallback fetching if props not provided
+    const { data: fetchedContacts, isLoading: isQueryLoading, error } = usePersonalPeople()
     const [searchQuery, setSearchQuery] = useState('')
-    const [filter, setFilter] = useState('ALL')
     const router = useRouter()
 
     const contacts = propContacts ?? fetchedContacts
     const isLoading = propIsLoading ?? isQueryLoading
 
     if (isLoading) {
-        // ... (skeleton loading remains same, omitting for brevity but replace_file_content needs full block if inside)
-        // actually I can just replace the interface and props destructuring part, and the render part.
-        // But let's stick to the plan. I will be careful with lines.
         return (
             <Card className="h-full border-0 shadow-none">
                 <CardHeader className="px-4 pb-2 space-y-4">
@@ -89,26 +85,21 @@ export function ContactList({
     if (error && !propContacts) {
         return (
             <div className="flex h-40 items-center justify-center text-destructive">
-                Error loading contacts
+                Error loading people
             </div>
         )
     }
 
     const filteredContacts = contacts?.filter(contact => {
         const matchesSearch = contact.name.toLowerCase().includes(searchQuery.toLowerCase())
-        // Only apply type filter if we are not in simple mode or if the contact has a type
-        const matchesFilter =
-            filter === 'ALL' ? true :
-                contact.type === filter
-
-        return matchesSearch && matchesFilter
+        return matchesSearch
     })
 
     const handleContactClick = (contact: Contact) => {
         if (onContactClick) {
             onContactClick(contact)
         } else {
-            router.push(`/dashboard/ledger/${contact.id}`)
+            router.push(`/dashboard/people/${contact.id}`)
         }
     }
 
@@ -118,12 +109,12 @@ export function ContactList({
                 <div className="flex items-center justify-between">
                     <CardTitle className="text-xl font-bold">{title}</CardTitle>
                     {showAddButton && (
-                        <AddContactDrawer>
+                        <AddPersonDrawer>
                             <Button size="sm">
                                 <Plus className="mr-2 h-4 w-4" />
                                 Add New
                             </Button>
-                        </AddContactDrawer>
+                        </AddPersonDrawer>
                     )}
                 </div>
 
@@ -136,14 +127,6 @@ export function ContactList({
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
                 </div>
-
-                {variant === 'business' && (
-                    <ToggleGroup type="single" value={filter} onValueChange={(val) => val && setFilter(val)} className="justify-start w-full">
-                        <ToggleGroupItem value="ALL" className="flex-1">All</ToggleGroupItem>
-                        <ToggleGroupItem value="CUSTOMER" className="flex-1">Customers</ToggleGroupItem>
-                        <ToggleGroupItem value="SUPPLIER" className="flex-1">Suppliers</ToggleGroupItem>
-                    </ToggleGroup>
-                )}
             </CardHeader>
             <CardContent className="p-0">
                 <div className="divide-y">

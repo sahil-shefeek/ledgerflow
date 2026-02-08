@@ -49,6 +49,7 @@ export function useUpdateTransaction() {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
             queryClient.invalidateQueries({ queryKey: ['contacts'] })
+            queryClient.invalidateQueries({ queryKey: ['personal-people'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
         },
         onError: (error) => {

@@ -8,7 +8,7 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
 import { useUpdateTransaction } from '@/hooks/useUpdateTransaction'
-import { useContacts } from '@/hooks/useContacts'
+import { useBusinessContacts } from '@/hooks/business/useBusinessContacts'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -42,7 +42,7 @@ export function BusinessTransactionDrawer({
     initialData?: any // eslint-disable-line @typescript-eslint/no-explicit-any
     hideTrigger?: boolean
 } = {}) {
-    const { data: contacts } = useContacts()
+    const { data: contacts } = useBusinessContacts()
     const { mutate: addTransaction, isPending: isAdding } = useAddTransaction()
     const { mutate: updateTransaction, isPending: isUpdating } = useUpdateTransaction()
     const isPending = isAdding || isUpdating

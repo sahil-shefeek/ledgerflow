@@ -1,7 +1,8 @@
 'use client'
 
-import { ContactList } from '@/components/ledger/ContactList'
-import { Contact, usePersonalPeople } from '@/hooks/useContacts'
+import { PeopleList } from '@/components/personal/PeopleList'
+import { usePersonalPeople } from '@/hooks/personal/usePersonalPeople'
+import { Contact } from '@/types'
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -55,14 +56,13 @@ export default function PeoplePage() {
             </div>
 
             <div className="flex-1 min-h-0">
-                <ContactList
+                <PeopleList
                     contacts={contacts}
                     isLoading={isLoading}
                     title="Your People"
                     emptyMessage="No people found"
                     emptyDescription={timeFilter !== 'ALL' ? "Try changing the time filter." : "Add someone to start tracking."}
                     showAddButton={true}
-                    variant="personal"
                     onContactClick={(contact) => {
                         router.push(`/dashboard/people/${contact.id}`)
                     }}

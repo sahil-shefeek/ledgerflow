@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { usePersonalPeople } from '@/hooks/useContacts'
+import { usePersonalPeople } from '@/hooks/personal/usePersonalPeople'
 import { useContactTransactions } from '@/hooks/useContactTransactions'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Receipt } from 'lucide-react'

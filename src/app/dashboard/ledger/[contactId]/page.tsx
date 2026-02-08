@@ -1,7 +1,7 @@
 'use client'
 
 import { useParams, useRouter } from 'next/navigation'
-import { useContacts } from '@/hooks/useContacts'
+import { useBusinessContacts } from '@/hooks/business/useBusinessContacts'
 import { useContactTransactions } from '@/hooks/useContactTransactions'
 import { Button } from '@/components/ui/button'
 import { ArrowLeft, Plus, Receipt, Filter, ArrowUpDown } from 'lucide-react'
@@ -37,7 +37,7 @@ export default function LedgerPage() {
     const params = useParams()
     const router = useRouter()
     const contactId = params.contactId as string
-    const { data: contacts } = useContacts()
+    const { data: contacts } = useBusinessContacts()
     const { data: transactions, isLoading } = useContactTransactions(contactId)
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')

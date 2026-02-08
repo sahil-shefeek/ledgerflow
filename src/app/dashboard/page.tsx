@@ -2,7 +2,7 @@
 
 import { useAppStore } from '@/store/useAppStore'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { ContactList } from '@/components/ledger/ContactList'
+import { BusinessContactList } from '@/components/business/BusinessContactList'
 import { BusinessTransactionDrawer } from '@/components/business/BusinessTransactionDrawer'
 import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { AnalyticsDashboard } from '@/components/finance/AnalyticsDashboard'
@@ -47,7 +47,7 @@ export default function DashboardPage() {
             {mode === 'business' ? (
                 <>
                     <BusinessSummary />
-                    <ContactList />
+                    <BusinessContactList />
                     <BusinessTransactionDrawer />
                 </>
             ) : (

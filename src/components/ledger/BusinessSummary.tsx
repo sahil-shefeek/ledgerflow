@@ -1,11 +1,11 @@
 'use client'
 
-import { useContacts } from '@/hooks/useContacts'
+import { useBusinessContacts } from '@/hooks/business/useBusinessContacts'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ArrowDownLeft, ArrowUpRight } from 'lucide-react'
 
 export function BusinessSummary() {
-    const { data: contacts, isLoading } = useContacts()
+    const { data: contacts, isLoading } = useBusinessContacts()
 
     const youWillGet = contacts
         ?.filter(c => c.net_balance > 0)

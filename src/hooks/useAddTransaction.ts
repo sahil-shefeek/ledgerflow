@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/useAppStore'
-import { Contact } from './useContacts'
+import { Contact } from '@/types'
 import { toast } from 'sonner'
 
 interface AddTransactionParams {
@@ -110,6 +110,7 @@ export function useAddTransaction() {
             // Invalidate all relevant queries to ensure fresh data
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['contacts'] })
+            queryClient.invalidateQueries({ queryKey: ['personal-people'] })
             queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })

@@ -9,9 +9,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useAddContact } from '@/hooks/useContacts'
-import { Loader2, Plus } from 'lucide-react'
-import { useAppStore } from '@/store/useAppStore'
+import { useAddBusinessContact } from '@/hooks/business/useAddBusinessContact'
+import { Loader2 } from 'lucide-react'
 import { AvatarUpload } from '@/components/ui/avatar-upload'
 
 const contactSchema = z.object({
@@ -21,39 +20,32 @@ const contactSchema = z.object({
     image_url: z.string().optional(),
 })
 
-interface AddContactDrawerProps {
+interface AddBusinessContactDrawerProps {
     children?: React.ReactNode
     open?: boolean
     onOpenChange?: (open: boolean) => void
 }
 
-export function AddContactDrawer({ children, open, onOpenChange }: AddContactDrawerProps) {
-    const { mode } = useAppStore()
+export function AddBusinessContactDrawer({ children, open, onOpenChange }: AddBusinessContactDrawerProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : internalOpen
     const setIsOpen = isControlled ? onOpenChange : setInternalOpen
 
-    const { mutate: addContact, isPending } = useAddContact()
+    const { mutate: addContact, isPending } = useAddBusinessContact()
 
     const form = useForm<z.infer<typeof contactSchema>>({
         resolver: zodResolver(contactSchema),
         defaultValues: {
             name: '',
             phone: '',
-            type: mode === 'personal' ? 'OTHER' : 'CUSTOMER',
+            type: 'CUSTOMER',
             image_url: '',
         },
     })
 
     function onSubmit(values: z.infer<typeof contactSchema>) {
-        // Force type to OTHER for personal contacts to satisfy DB constraint but hide semantic meaning
-        const submissionValues = {
-            ...values,
-            type: mode === 'personal' ? 'OTHER' as const : values.type
-        }
-
-        addContact(submissionValues, {
+        addContact(values, {
             onSuccess: () => {
                 setIsOpen?.(false)
                 form.reset()
@@ -67,7 +59,7 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle>{mode === 'personal' ? 'Add New Person' : 'Add New Contact'}</DrawerTitle>
+                        <DrawerTitle>Add New Contact</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-8">
                         <Form {...form}>
@@ -116,33 +108,31 @@ export function AddContactDrawer({ children, open, onOpenChange }: AddContactDra
                                         </FormItem>
                                     )}
                                 />
-                                {mode === 'business' && (
-                                    <FormField
-                                        control={form.control}
-                                        name="type"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Type</FormLabel>
-                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                    <FormControl>
-                                                        <SelectTrigger>
-                                                            <SelectValue placeholder="Select type" />
-                                                        </SelectTrigger>
-                                                    </FormControl>
-                                                    <SelectContent>
-                                                        <SelectItem value="CUSTOMER">Customer</SelectItem>
-                                                        <SelectItem value="SUPPLIER">Supplier</SelectItem>
-                                                        <SelectItem value="OTHER">Other</SelectItem>
-                                                    </SelectContent>
-                                                </Select>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                )}
+                                <FormField
+                                    control={form.control}
+                                    name="type"
+                                    render={({ field }) => (
+                                        <FormItem>
+                                            <FormLabel>Type</FormLabel>
+                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                <FormControl>
+                                                    <SelectTrigger>
+                                                        <SelectValue placeholder="Select type" />
+                                                    </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                    <SelectItem value="CUSTOMER">Customer</SelectItem>
+                                                    <SelectItem value="SUPPLIER">Supplier</SelectItem>
+                                                    <SelectItem value="OTHER">Other</SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                            <FormMessage />
+                                        </FormItem>
+                                    )}
+                                />
                                 <Button type="submit" className="w-full" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    {mode === 'personal' ? 'Add Person' : 'Add Contact'}
+                                    Add Contact
                                 </Button>
                             </form>
                         </Form>

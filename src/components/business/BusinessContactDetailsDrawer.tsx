@@ -11,20 +11,19 @@ import {
 } from '@/components/ui/drawer'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
-import { Contact } from '@/hooks/useContacts'
-import { format } from 'date-fns'
-import { Trash2, Edit, Phone, User } from 'lucide-react'
+import { Contact } from '@/types'
+import { Trash2, Edit, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 
-interface ContactDetailsDrawerProps {
+interface BusinessContactDetailsDrawerProps {
     contact: Contact | null
     open: boolean
     onOpenChange: (open: boolean) => void
 }
 
-export function ContactDetailsDrawer({ contact, open, onOpenChange }: ContactDetailsDrawerProps) {
+export function BusinessContactDetailsDrawer({ contact, open, onOpenChange }: BusinessContactDetailsDrawerProps) {
     const supabase = createClient()
     const queryClient = useQueryClient()
 
