@@ -6,11 +6,14 @@ import { useEffect } from 'react'
 export type Profile = {
     id: string
     full_name: string | null
+    username: string | null
     business_name: string | null
     phone: string | null
+    email: string | null
     avatar_url: string | null
     currency_symbol: string
-    email?: string
+    discoverable_by_phone: boolean
+    discoverable_by_username: boolean
 }
 
 export function useProfile() {
