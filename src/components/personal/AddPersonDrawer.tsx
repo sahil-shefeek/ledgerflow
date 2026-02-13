@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -9,8 +9,10 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { useAddPerson } from '@/hooks/personal/useAddPerson'
+import { useUpdateContact } from '@/hooks/useUpdateContact'
 import { Loader2 } from 'lucide-react'
 import { AvatarUpload } from '@/components/ui/avatar-upload'
+import { Contact } from '@/types'
 
 const personSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -22,32 +24,60 @@ interface AddPersonDrawerProps {
     children?: React.ReactNode
     open?: boolean
     onOpenChange?: (open: boolean) => void
+    initialData?: Contact
 }
 
-export function AddPersonDrawer({ children, open, onOpenChange }: AddPersonDrawerProps) {
+export function AddPersonDrawer({ children, open, onOpenChange, initialData }: AddPersonDrawerProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : internalOpen
     const setIsOpen = isControlled ? onOpenChange : setInternalOpen
 
-    const { mutate: addPerson, isPending } = useAddPerson()
+    const { mutate: addPerson, isPending: isAdding } = useAddPerson()
+    const { mutate: updatePerson, isPending: isUpdating } = useUpdateContact()
+    const isPending = isAdding || isUpdating
 
     const form = useForm<z.infer<typeof personSchema>>({
         resolver: zodResolver(personSchema),
         defaultValues: {
-            name: '',
-            phone: '',
-            image_url: '',
+            name: initialData?.name || '',
+            phone: initialData?.phone || '',
+            image_url: initialData?.image_url || '',
         },
     })
 
+    useEffect(() => {
+        if (initialData) {
+            form.reset({
+                name: initialData.name,
+                phone: initialData.phone || '',
+                image_url: initialData.image_url || '',
+            })
+        } else {
+            form.reset({
+                name: '',
+                phone: '',
+                image_url: '',
+            })
+        }
+    }, [initialData, form])
+
     function onSubmit(values: z.infer<typeof personSchema>) {
-        addPerson(values, {
-            onSuccess: () => {
-                setIsOpen?.(false)
-                form.reset()
-            },
-        })
+        if (initialData) {
+            updatePerson({ id: initialData.id, ...values }, {
+                onSuccess: () => {
+                    setIsOpen?.(false)
+                    form.reset()
+                }
+            })
+        } else {
+            addPerson(values, {
+                onSuccess: () => {
+                    setIsOpen?.(false)
+                    form.reset()
+                },
+            })
+        }
     }
 
     return (
@@ -56,7 +86,7 @@ export function AddPersonDrawer({ children, open, onOpenChange }: AddPersonDrawe
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle>Add New Person</DrawerTitle>
+                        <DrawerTitle>{initialData ? 'Edit Person' : 'Add New Person'}</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-8">
                         <Form {...form}>
@@ -107,7 +137,7 @@ export function AddPersonDrawer({ children, open, onOpenChange }: AddPersonDrawe
                                 />
                                 <Button type="submit" className="w-full" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Add Person
+                                    {initialData ? 'Save Changes' : 'Add Person'}
                                 </Button>
                             </form>
                         </Form>

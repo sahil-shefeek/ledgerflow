@@ -4,14 +4,32 @@ import { useParams, useRouter } from 'next/navigation'
 import { usePersonalPeople } from '@/hooks/personal/usePersonalPeople'
 import { useContactTransactions } from '@/hooks/useContactTransactions'
 import { Button } from '@/components/ui/button'
-import { ArrowLeft, Receipt } from 'lucide-react'
+import { ArrowLeft, Receipt, MoreVertical, Edit, Trash2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { formatTransactionDate } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
+import { AddPersonDrawer } from '@/components/personal/AddPersonDrawer'
 import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { TransactionDetailsDrawer } from '@/components/finance/TransactionDetailsDrawer'
 import { useState, useMemo } from 'react'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { useDeleteContact } from '@/hooks/useDeleteContact'
 import { Loader2 } from 'lucide-react'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { startOfDay, startOfWeek, startOfMonth, startOfYear, isAfter } from 'date-fns'
@@ -48,6 +66,18 @@ export default function PersonDetailsPage() {
     const [detailsOpen, setDetailsOpen] = useState(false)
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
     const [editOpen, setEditOpen] = useState(false)
+    const [personEditOpen, setPersonEditOpen] = useState(false)
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+
+    const { mutate: deletePerson, isPending: isDeleting } = useDeleteContact()
+
+    const handleDeletePerson = () => {
+        deletePerson(contactId, {
+            onSuccess: () => {
+                router.push('/dashboard/people')
+            }
+        })
+    }
 
 
     const contact = contacts?.find(c => c.id === contactId)
@@ -128,6 +158,28 @@ export default function PersonDetailsPage() {
                         <AvatarFallback>{contact.name.slice(0, 2).toUpperCase()}</AvatarFallback>
                     </Avatar>
                     <h1 className="text-2xl font-bold tracking-tight">{contact.name}</h1>
+                </div>
+                <div className="ml-auto">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon">
+                                <MoreVertical className="h-4 w-4" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setPersonEditOpen(true)}>
+                                <Edit className="mr-2 h-4 w-4" />
+                                Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                                className="text-red-600 focus:text-red-600"
+                                onClick={() => setDeleteDialogOpen(true)}
+                            >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </div>
 
@@ -234,6 +286,39 @@ export default function PersonDetailsPage() {
                 onOpenChange={setDetailsOpen}
                 onEdit={() => { }} // No-op or remove prop from component definition if possible
             />
-        </div>
+
+
+            <AddPersonDrawer
+                open={personEditOpen}
+                onOpenChange={setPersonEditOpen}
+                initialData={contact}
+            />
+
+            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            This action cannot be undone. This will permanently delete the person
+                            and all associated transactions.
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={(e) => {
+                                e.preventDefault()
+                                handleDeletePerson()
+                            }}
+                            className="bg-red-600 hover:bg-red-700"
+                            disabled={isDeleting}
+                        >
+                            {isDeleting ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                            Delete
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        </div >
     )
 }

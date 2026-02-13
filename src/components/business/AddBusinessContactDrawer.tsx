@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -10,8 +10,10 @@ import { Input } from '@/components/ui/input'
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useAddBusinessContact } from '@/hooks/business/useAddBusinessContact'
+import { useUpdateContact } from '@/hooks/useUpdateContact'
 import { Loader2 } from 'lucide-react'
 import { AvatarUpload } from '@/components/ui/avatar-upload'
+import { Contact } from '@/types'
 
 const contactSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -24,33 +26,63 @@ interface AddBusinessContactDrawerProps {
     children?: React.ReactNode
     open?: boolean
     onOpenChange?: (open: boolean) => void
+    initialData?: Contact
 }
 
-export function AddBusinessContactDrawer({ children, open, onOpenChange }: AddBusinessContactDrawerProps) {
+export function AddBusinessContactDrawer({ children, open, onOpenChange, initialData }: AddBusinessContactDrawerProps) {
     const [internalOpen, setInternalOpen] = useState(false)
     const isControlled = open !== undefined
     const isOpen = isControlled ? open : internalOpen
     const setIsOpen = isControlled ? onOpenChange : setInternalOpen
 
-    const { mutate: addContact, isPending } = useAddBusinessContact()
+    const { mutate: addContact, isPending: isAdding } = useAddBusinessContact()
+    const { mutate: updateContact, isPending: isUpdating } = useUpdateContact()
+    const isPending = isAdding || isUpdating
 
     const form = useForm<z.infer<typeof contactSchema>>({
         resolver: zodResolver(contactSchema),
         defaultValues: {
-            name: '',
-            phone: '',
-            type: 'CUSTOMER',
-            image_url: '',
+            name: initialData?.name || '',
+            phone: initialData?.phone || '',
+            type: initialData?.type || 'CUSTOMER',
+            image_url: initialData?.image_url || '',
         },
     })
 
+    useEffect(() => {
+        if (initialData) {
+            form.reset({
+                name: initialData.name,
+                phone: initialData.phone || '',
+                type: initialData.type,
+                image_url: initialData.image_url || '',
+            })
+        } else {
+            form.reset({
+                name: '',
+                phone: '',
+                type: 'CUSTOMER',
+                image_url: '',
+            })
+        }
+    }, [initialData, form])
+
     function onSubmit(values: z.infer<typeof contactSchema>) {
-        addContact(values, {
-            onSuccess: () => {
-                setIsOpen?.(false)
-                form.reset()
-            },
-        })
+        if (initialData) {
+            updateContact({ id: initialData.id, ...values }, {
+                onSuccess: () => {
+                    setIsOpen?.(false)
+                    form.reset()
+                }
+            })
+        } else {
+            addContact(values, {
+                onSuccess: () => {
+                    setIsOpen?.(false)
+                    form.reset()
+                },
+            })
+        }
     }
 
     return (
@@ -59,7 +91,7 @@ export function AddBusinessContactDrawer({ children, open, onOpenChange }: AddBu
             <DrawerContent>
                 <div className="mx-auto w-full max-w-sm">
                     <DrawerHeader>
-                        <DrawerTitle>Add New Contact</DrawerTitle>
+                        <DrawerTitle>{initialData ? 'Edit Contact' : 'Add New Contact'}</DrawerTitle>
                     </DrawerHeader>
                     <div className="p-4 pb-8">
                         <Form {...form}>
@@ -132,7 +164,7 @@ export function AddBusinessContactDrawer({ children, open, onOpenChange }: AddBu
                                 />
                                 <Button type="submit" className="w-full" disabled={isPending}>
                                     {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Add Contact
+                                    {initialData ? 'Save Changes' : 'Add Contact'}
                                 </Button>
                             </form>
                         </Form>
