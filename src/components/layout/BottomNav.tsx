@@ -14,9 +14,9 @@ import {
 } from 'lucide-react'
 
 import { MobileSidebar } from './MobileSidebar'
+import { InteractiveBottomNav } from '@/components/ui/interactive-bottom-nav'
 
 export function BottomNav() {
-    const pathname = usePathname()
     const { mode } = useAppStore()
 
     const navItems = [
@@ -25,44 +25,31 @@ export function BottomNav() {
             href: '/dashboard',
             icon: LayoutDashboard,
         },
-
         {
             label: 'People',
             href: '/dashboard/people',
             icon: Users,
-            showIn: 'personal',
+            showIn: 'personal' as const,
         },
         {
             label: 'Analytics',
             href: '/dashboard/analytics',
             icon: PieChart,
-            showIn: 'personal',
+            showIn: 'personal' as const,
         },
+        // We might want to add more items for business mode or general items if needed
+        // For now, sticking to what was there, but the component requires at least 2 items.
+        // If mode filters result in < 2 items, the component handles it gracefully or shows default.
     ]
 
+    // Filter items based on mode
+    const filteredItems = navItems.filter(
+        (item) => !item.showIn || item.showIn === mode
+    )
+
     return (
-        <div className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background md:hidden">
-            <nav className="flex h-16 items-center justify-around px-2">
-                {navItems.map((item) => {
-                    if (item.showIn && item.showIn !== mode) return null
-                    const Icon = item.icon
-                    return (
-                        <Link
-                            key={item.label}
-                            href={item.href}
-                            className={cn(
-                                'flex flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 text-xs transition-colors hover:bg-muted/50',
-                                pathname === item.href
-                                    ? 'text-primary'
-                                    : 'text-muted-foreground'
-                            )}
-                        >
-                            <Icon className="h-5 w-5" />
-                            {item.label}
-                        </Link>
-                    )
-                })}
-            </nav>
+        <div className="fixed bottom-0 left-0 right-0 z-50 md:hidden">
+            <InteractiveBottomNav items={filteredItems} />
         </div>
     )
 }
