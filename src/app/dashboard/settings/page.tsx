@@ -35,8 +35,6 @@ const profileSchema = z.object({
     business_name: z.string().optional().or(z.literal('')),
     phone: z.string().optional().or(z.literal('')),
     avatar_url: z.string().optional().or(z.literal('')),
-    discoverable_by_phone: z.boolean(),
-    discoverable_by_username: z.boolean(),
 })
 
 type ProfileFormValues = z.infer<typeof profileSchema>
@@ -48,6 +46,9 @@ export default function SettingsPage() {
     const [isLinkingGoogle, setIsLinkingGoogle] = useState(false)
     const [isUpdatingEmail, setIsUpdatingEmail] = useState(false)
     const [newEmail, setNewEmail] = useState('')
+    const [updatingPrivacy, setUpdatingPrivacy] = useState<string | null>(null)
+    const [claimingUsername, setClaimingUsername] = useState(false)
+    const [newUsername, setNewUsername] = useState('')
     const supabase = createClient()
 
     // Fallback if themeSettings is not yet loaded or structure is missing
@@ -69,8 +70,6 @@ export default function SettingsPage() {
             business_name: '',
             phone: '',
             avatar_url: '',
-            discoverable_by_phone: false,
-            discoverable_by_username: false,
         },
         mode: 'onChange' // Enable dirty checking on change
     })
@@ -84,8 +83,6 @@ export default function SettingsPage() {
                 business_name: profile.business_name || '',
                 phone: profile.phone || '',
                 avatar_url: profile.avatar_url || '',
-                discoverable_by_phone: profile.discoverable_by_phone || false,
-                discoverable_by_username: profile.discoverable_by_username || false,
             })
         }
     }, [profile, form, isEditing])
@@ -134,6 +131,40 @@ export default function SettingsPage() {
         }
     }
 
+    const handlePrivacyUpdate = (key: 'discoverable_by_phone' | 'discoverable_by_username', value: boolean) => {
+        setUpdatingPrivacy(key)
+        updateProfile.mutate({ [key]: value }, {
+            onSuccess: () => {
+                toast.success('Privacy settings updated')
+                setUpdatingPrivacy(null)
+            },
+            onError: () => {
+                toast.error('Failed to update privacy settings')
+                setUpdatingPrivacy(null)
+            }
+        })
+    }
+
+    const handleClaimUsername = () => {
+        if (!newUsername || newUsername.length < 3) return
+        setClaimingUsername(true)
+        updateProfile.mutate({ username: newUsername }, {
+            onSuccess: () => {
+                toast.success('Username claimed successfully!')
+                setClaimingUsername(false)
+                setNewUsername('')
+            },
+            onError: (error: any) => {
+                if (error.code === '23505') {
+                    toast.error('This username is already taken.')
+                } else {
+                    toast.error('Failed to claim username.')
+                }
+                setClaimingUsername(false)
+            }
+        })
+    }
+
     const handleCancel = () => {
         setIsEditing(false)
         if (profile) {
@@ -143,8 +174,6 @@ export default function SettingsPage() {
                 business_name: profile.business_name || '',
                 phone: profile.phone || '',
                 avatar_url: profile.avatar_url || '',
-                discoverable_by_phone: profile.discoverable_by_phone || false,
-                discoverable_by_username: profile.discoverable_by_username || false,
             })
         }
     }
@@ -306,6 +335,34 @@ export default function SettingsPage() {
 
                                             <FormField
                                                 control={form.control}
+                                                name="username"
+                                                render={({ field }) => (
+                                                    <FormItem>
+                                                        <FormLabel>Username</FormLabel>
+                                                        <FormControl>
+                                                            <div className="relative">
+                                                                <AtSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                                                <Input
+                                                                    placeholder="username"
+                                                                    className="pl-9"
+                                                                    {...field}
+                                                                    value={field.value || ''}
+                                                                    disabled={!!profile?.username && profile.username !== ''}
+                                                                />
+                                                            </div>
+                                                        </FormControl>
+                                                        <p className="text-[0.8rem] text-muted-foreground">
+                                                            {profile?.username ? "Username cannot be changed once set." : "Choose a unique username."}
+                                                        </p>
+                                                        <FormMessage />
+                                                    </FormItem>
+                                                )}
+                                            />
+                                        </div>
+
+                                        <div className="grid gap-4 md:grid-cols-2">
+                                            <FormField
+                                                control={form.control}
                                                 name="phone"
                                                 render={({ field }) => (
                                                     <FormItem>
@@ -317,27 +374,8 @@ export default function SettingsPage() {
                                                     </FormItem>
                                                 )}
                                             />
-                                        </div>
 
 
-
-                                        <div className="grid gap-4 md:grid-cols-2">
-                                            <FormField
-                                                control={form.control}
-                                                name="username"
-                                                render={({ field }) => (
-                                                    <FormItem>
-                                                        <FormLabel>Username</FormLabel>
-                                                        <FormControl>
-                                                            <div className="relative">
-                                                                <AtSign className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                                                <Input placeholder="username" className="pl-9" {...field} />
-                                                            </div>
-                                                        </FormControl>
-                                                        <FormMessage />
-                                                    </FormItem>
-                                                )}
-                                            />
 
                                             <FormField
                                                 control={form.control}
@@ -352,55 +390,6 @@ export default function SettingsPage() {
                                                     </FormItem>
                                                 )}
                                             />
-                                        </div>
-
-                                        <div className="rounded-lg border p-4 space-y-4">
-                                            <h3 className="font-medium flex items-center gap-2">
-                                                <Shield className="h-4 w-4" />
-                                                Privacy Settings
-                                            </h3>
-                                            <div className="space-y-4">
-                                                <FormField
-                                                    control={form.control}
-                                                    name="discoverable_by_phone"
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                                            <div className="space-y-0.5">
-                                                                <FormLabel>Phone Discoverability</FormLabel>
-                                                                <CardDescription>
-                                                                    Allow others to find you by your phone number.
-                                                                </CardDescription>
-                                                            </div>
-                                                            <FormControl>
-                                                                <Switch
-                                                                    checked={field.value}
-                                                                    onCheckedChange={field.onChange}
-                                                                />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                                <FormField
-                                                    control={form.control}
-                                                    name="discoverable_by_username"
-                                                    render={({ field }) => (
-                                                        <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
-                                                            <div className="space-y-0.5">
-                                                                <FormLabel>Username Discoverability</FormLabel>
-                                                                <CardDescription>
-                                                                    Allow others to find you by your username.
-                                                                </CardDescription>
-                                                            </div>
-                                                            <FormControl>
-                                                                <Switch
-                                                                    checked={field.value}
-                                                                    onCheckedChange={field.onChange}
-                                                                />
-                                                            </FormControl>
-                                                        </FormItem>
-                                                    )}
-                                                />
-                                            </div>
                                         </div>
 
                                         <div className="flex items-center justify-end gap-2">
@@ -428,7 +417,32 @@ export default function SettingsPage() {
                                         </Avatar>
                                         <div className="space-y-1">
                                             <h3 className="text-2xl font-semibold leading-none tracking-tight">{profile?.full_name || 'No Name Set'}</h3>
-                                            <p className="text-sm text-muted-foreground">{profile?.email}</p>
+                                            <p className="text-sm text-muted-foreground">{profile?.email || 'No email linked'}</p>
+
+                                            {/* Inline Username Claiming / Display */}
+                                            <div className="flex items-center gap-2 mt-1">
+                                                <AtSign className="h-3.5 w-3.5 text-muted-foreground" />
+                                                {profile?.username ? (
+                                                    <span className="text-sm font-medium text-foreground">{profile.username}</span>
+                                                ) : (
+                                                    <div className="flex items-center gap-2">
+                                                        <Input
+                                                            className="h-7 w-40 text-xs"
+                                                            placeholder="Claim username"
+                                                            value={newUsername}
+                                                            onChange={(e) => setNewUsername(e.target.value)}
+                                                        />
+                                                        <Button
+                                                            size="sm"
+                                                            className="h-7 text-xs"
+                                                            disabled={claimingUsername || !newUsername || newUsername.length < 3}
+                                                            onClick={handleClaimUsername}
+                                                        >
+                                                            {claimingUsername ? <Loader2 className="h-3 w-3 animate-spin" /> : 'Claim'}
+                                                        </Button>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
 
@@ -456,65 +470,103 @@ export default function SettingsPage() {
 
                                     {/* Legacy Account Security Section */}
                                     {profile && !profile.email && !isEditing && (
-                                        <div className="rounded-md border border-amber-200 bg-amber-50 p-4 dark:border-amber-900/50 dark:bg-amber-900/10">
-                                            <div className="flex items-start gap-3">
-                                                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500 mt-0.5" />
-                                                <div className="space-y-3 flex-1">
-                                                    <div>
-                                                        <h4 className="font-medium text-amber-900 dark:text-amber-500">Account Security Warning</h4>
-                                                        <p className="text-sm text-amber-800/90 dark:text-amber-500/90">
-                                                            Your account is currently only linked to your phone number. If you lose access to this number, you will lose your account.
-                                                        </p>
+                                        <Card className="border-amber-200 bg-amber-50 dark:border-amber-900/50 dark:bg-amber-900/10">
+                                            <CardContent className="p-4 sm:p-6">
+                                                <div className="flex flex-col sm:flex-row gap-4 items-start">
+                                                    <div className="rounded-full bg-amber-100 p-2 dark:bg-amber-900/30 shrink-0">
+                                                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-500" />
                                                     </div>
-
-                                                    <div className="flex flex-col gap-3 pt-2">
-                                                        <div className="flex flex-col sm:flex-row gap-2">
-                                                            <Input
-                                                                placeholder="Enter your email"
-                                                                value={newEmail}
-                                                                onChange={(e) => setNewEmail(e.target.value)}
-                                                                className="max-w-xs bg-white dark:bg-black/20"
-                                                            />
-                                                            <Button
-                                                                variant="outline"
-                                                                onClick={handleUpdateEmail}
-                                                                disabled={isUpdatingEmail || !newEmail}
-                                                                className="border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:hover:bg-amber-900/30"
-                                                            >
-                                                                {isUpdatingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Add Email'}
-                                                            </Button>
+                                                    <div className="flex-1 space-y-4 w-full">
+                                                        <div className="space-y-1">
+                                                            <h4 className="font-medium text-amber-900 dark:text-amber-500">Account Security Warning</h4>
+                                                            <p className="text-sm text-amber-800/90 dark:text-amber-500/90 leading-relaxed">
+                                                                Your account is currently only linked to this device/phone number. To ensure you don't lose access, please link an email address.
+                                                            </p>
                                                         </div>
 
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-sm text-amber-800/70 dark:text-amber-500/70">or</span>
+                                                        <div className="flex flex-col sm:flex-row gap-3 pt-1 items-center w-full">
+                                                            <div className="flex w-full sm:max-w-xs items-center space-x-2">
+                                                                <Input
+                                                                    placeholder="name@example.com"
+                                                                    value={newEmail}
+                                                                    onChange={(e) => setNewEmail(e.target.value)}
+                                                                    className="bg-white/50 dark:bg-black/20 border-amber-200 dark:border-amber-800"
+                                                                />
+                                                                <Button
+                                                                    size="sm"
+                                                                    variant="outline"
+                                                                    onClick={handleUpdateEmail}
+                                                                    disabled={isUpdatingEmail || !newEmail}
+                                                                    className="border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:hover:bg-amber-900/30 whitespace-nowrap"
+                                                                >
+                                                                    {isUpdatingEmail ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Link Email'}
+                                                                </Button>
+                                                            </div>
+
+                                                            <div className="relative flex items-center justify-center sm:justify-start py-2 sm:py-0 sm:px-2">
+                                                                <span className="text-xs text-amber-800/60 font-medium px-2 bg-amber-50 dark:bg-transparent z-10">OR</span>
+                                                                <div className="absolute inset-0 flex items-center sm:hidden">
+                                                                    <div className="w-full border-t border-amber-200 dark:border-amber-800"></div>
+                                                                </div>
+                                                            </div>
+
                                                             <Button
+                                                                size="sm"
                                                                 variant="outline"
                                                                 onClick={handleLinkGoogle}
                                                                 disabled={isLinkingGoogle}
-                                                                className="border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:hover:bg-amber-900/30"
+                                                                className="w-full sm:w-auto border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:border-amber-800 dark:hover:bg-amber-900/30"
                                                             >
-                                                                {isLinkingGoogle ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Link Google Account'}
+                                                                {isLinkingGoogle ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                                                Link Google Account
                                                             </Button>
                                                         </div>
                                                     </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            </CardContent>
+                                        </Card>
                                     )}
 
+                                    {/* Privacy Settings (Decoupled) */}
                                     <div className="rounded-lg border p-4 space-y-4">
                                         <h3 className="font-medium flex items-center gap-2">
                                             <Shield className="h-4 w-4" />
                                             Privacy Settings
                                         </h3>
                                         <div className="grid gap-4 md:grid-cols-2">
-                                            <div className="flex items-center justify-between space-x-2">
-                                                <Label htmlFor="view-phone">Phone Discoverability</Label>
-                                                <Switch id="view-phone" checked={profile?.discoverable_by_phone || false} disabled />
+                                            <div className="flex items-center justify-between space-x-2 rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="view-phone" className="text-base">Phone Discoverability</Label>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Allow searching by number
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {updatingPrivacy === 'discoverable_by_phone' && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                                                    <Switch
+                                                        id="view-phone"
+                                                        checked={profile?.discoverable_by_phone || false}
+                                                        onCheckedChange={(checked) => handlePrivacyUpdate('discoverable_by_phone', checked)}
+                                                        disabled={!!updatingPrivacy}
+                                                    />
+                                                </div>
                                             </div>
-                                            <div className="flex items-center justify-between space-x-2">
-                                                <Label htmlFor="view-username">Username Discoverability</Label>
-                                                <Switch id="view-username" checked={profile?.discoverable_by_username || false} disabled />
+                                            <div className="flex items-center justify-between space-x-2 rounded-lg border p-3 shadow-sm">
+                                                <div className="space-y-1">
+                                                    <Label htmlFor="view-username" className="text-base">Username Discoverability</Label>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Allow searching by username
+                                                    </p>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    {updatingPrivacy === 'discoverable_by_username' && <Loader2 className="h-3 w-3 animate-spin text-muted-foreground" />}
+                                                    <Switch
+                                                        id="view-username"
+                                                        checked={profile?.discoverable_by_username || false}
+                                                        onCheckedChange={(checked) => handlePrivacyUpdate('discoverable_by_username', checked)}
+                                                        disabled={!!updatingPrivacy}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
