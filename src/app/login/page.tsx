@@ -38,6 +38,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
+import { cn, getURL } from '@/lib/utils'
 
 const phoneSchema = z.object({
     phone: z.string().min(10, 'Phone number must be at least 10 digits'),
@@ -86,7 +87,7 @@ export default function LoginPage() {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
+                    redirectTo: `${getURL()}auth/callback`,
                 },
             })
             if (error) throw error
