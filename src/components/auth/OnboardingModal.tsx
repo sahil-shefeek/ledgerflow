@@ -84,15 +84,6 @@ export function OnboardingModal() {
                 <DialogHeader>
                     <div className="flex items-center justify-between">
                         <DialogTitle>Choose a Username</DialogTitle>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-6 w-6 rounded-full"
-                            onClick={handleClose}
-                        >
-                            <X className="h-4 w-4" />
-                            <span className="sr-only">Close</span>
-                        </Button>
                     </div>
                     <DialogDescription>
                         Set a unique username to make it easier for others to find you on LedgerFlow.
@@ -120,7 +111,7 @@ export function OnboardingModal() {
 
                         <div className="flex justify-end gap-2">
                             <Button type="button" variant="ghost" onClick={handleClose}>
-                                Skip via Close
+                                Skip for now
                             </Button>
                             <Button type="submit" disabled={updateProfile.isPending}>
                                 {updateProfile.isPending && (

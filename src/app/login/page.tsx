@@ -1,13 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
-import { Loader2, Phone, Mail, ArrowLeft, Send } from 'lucide-react'
+import { Loader2, Phone, Mail, ArrowLeft, Send, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
     Card,
@@ -53,16 +53,39 @@ const otpSchema = z.object({
 })
 
 type AuthMethod = 'EMAIL' | 'PHONE' | 'GOOGLE'
+type LoadingState = 'GOOGLE' | 'EMAIL' | 'PHONE' | 'OTP' | null
 
-export default function LoginPage() {
+function LoginContent() {
     const [authMethod, setAuthMethod] = useState<AuthMethod>('EMAIL')
-    const [step, setStep] = useState<'INPUT' | 'OTP'>('INPUT')
-    const [loading, setLoading] = useState(false)
+    const [step, setStep] = useState<'INPUT' | 'OTP' | 'EMAIL_SENT'>('INPUT')
+    const [loadingState, setLoadingState] = useState<LoadingState>(null)
+    const [error, setError] = useState<string | null>(null)
     const [identifier, setIdentifier] = useState('') // Email or Phone
     const [countryCode, setCountryCode] = useState('+91')
 
     const supabase = createClient()
     const router = useRouter()
+    const searchParams = useSearchParams()
+
+    useEffect(() => {
+        // Check query params
+        const error = searchParams.get('error')
+        const error_description = searchParams.get('error_description')
+        if (error && error_description) {
+            setError(error_description)
+            return
+        }
+
+        // Check hash params (Supabase often returns errors in hash)
+        if (window.location.hash) {
+            const hashParams = new URLSearchParams(window.location.hash.substring(1)) // remove #
+            const hashError = hashParams.get('error')
+            const hashErrorDesc = hashParams.get('error_description')
+            if (hashError && hashErrorDesc) {
+                setError(hashErrorDesc.replace(/\+/g, ' '))
+            }
+        }
+    }, [searchParams])
 
     const phoneForm = useForm<z.infer<typeof phoneSchema>>({
         resolver: zodResolver(phoneSchema),
@@ -82,7 +105,7 @@ export default function LoginPage() {
     const otpValue = otpForm.watch('otp')
 
     const handleGoogleLogin = async () => {
-        setLoading(true)
+        setLoadingState('GOOGLE')
         try {
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
@@ -94,30 +117,33 @@ export default function LoginPage() {
         } catch (error: any) {
             console.error('Google login error:', error)
             toast.error(error.message || 'Failed to initiate Google login')
-            setLoading(false)
+            setLoadingState(null)
         }
     }
 
     async function onEmailSubmit(values: z.infer<typeof emailSchema>) {
-        setLoading(true)
+        setLoadingState('EMAIL')
         setIdentifier(values.email)
         try {
             const { error } = await supabase.auth.signInWithOtp({
                 email: values.email,
+                options: {
+                    emailRedirectTo: `${getURL()}auth/callback`,
+                },
             })
             if (error) throw error
-            toast.success('OTP sent to your email!')
-            setStep('OTP')
+            toast.success('Check your email for the login link!')
+            setStep('EMAIL_SENT')
         } catch (error: any) {
             console.error('Email login error:', error)
-            toast.error(error.message || 'Failed to send OTP')
+            toast.error(error.message || 'Failed to send login link')
         } finally {
-            setLoading(false)
+            setLoadingState(null)
         }
     }
 
     async function onPhoneSubmit(values: z.infer<typeof phoneSchema>) {
-        setLoading(true)
+        setLoadingState('PHONE')
         const formattedPhone = values.phone.startsWith('+')
             ? values.phone
             : `${countryCode}${values.phone}`
@@ -135,24 +161,19 @@ export default function LoginPage() {
             console.error('Phone login error:', error)
             toast.error(error.message || 'Failed to send OTP')
         } finally {
-            setLoading(false)
+            setLoadingState(null)
         }
     }
 
     async function onOtpSubmit(values: z.infer<typeof otpSchema>) {
-        setLoading(true)
+        setLoadingState('OTP')
         try {
-            const { error } = await (authMethod === 'EMAIL'
-                ? supabase.auth.verifyOtp({
-                    email: identifier,
-                    token: values.otp,
-                    type: 'email',
-                })
-                : supabase.auth.verifyOtp({
-                    phone: identifier,
-                    token: values.otp,
-                    type: 'sms',
-                }))
+            // Only phone login uses OTP now
+            const { error } = await supabase.auth.verifyOtp({
+                phone: identifier,
+                token: values.otp,
+                type: 'sms',
+            })
 
             if (error) throw error
 
@@ -161,8 +182,14 @@ export default function LoginPage() {
         } catch (error: any) {
             console.error('OTP verification error:', error)
             toast.error(error.message || 'Invalid OTP')
-            setLoading(false)
+            setLoadingState(null)
         }
+    }
+
+    const resetError = () => {
+        setError(null)
+        // clean up URL
+        router.replace('/login')
     }
 
     const resetFlow = () => {
@@ -174,22 +201,61 @@ export default function LoginPage() {
         setIdentifier('')
     }
 
+    const isLoading = loadingState !== null
+
     return (
         <div className="flex min-h-screen items-center justify-center bg-muted/50 p-4">
             <Card className="w-full max-w-md">
                 <CardHeader>
                     <CardTitle className="text-center text-2xl font-bold">
-                        Welcome to LedgerFlow
+                        {error ? 'Login Failed' : step === 'EMAIL_SENT' ? 'Check your inbox' : 'Welcome to LedgerFlow'}
                     </CardTitle>
                     <CardDescription className="text-center">
-                        {step === 'INPUT'
-                            ? 'Sign in to access your dashboard'
-                            : `Enter the OTP sent to ${identifier}`
+                        {error
+                            ? 'There was a problem signing you in'
+                            : step === 'INPUT'
+                                ? 'Sign in to access your dashboard'
+                                : step === 'EMAIL_SENT'
+                                    ? `We've sent a login link to ${identifier}`
+                                    : `Enter the OTP sent to ${identifier}`
                         }
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {step === 'OTP' ? (
+                    {error ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-destructive/10">
+                                <AlertCircle className="h-10 w-10 text-destructive" />
+                            </div>
+                            <p className="text-center text-sm text-foreground font-medium">
+                                {error}
+                            </p>
+                            <Button
+                                className="w-full"
+                                onClick={resetError}
+                            >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Try Again
+                            </Button>
+                        </div>
+                    ) : step === 'EMAIL_SENT' ? (
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+                                <Mail className="h-10 w-10 text-primary" />
+                            </div>
+                            <p className="text-center text-sm text-muted-foreground">
+                                Click the link in the email to sign in. You can close this tab.
+                            </p>
+                            <Button
+                                variant="ghost"
+                                className="w-full"
+                                onClick={resetFlow}
+                            >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Login
+                            </Button>
+                        </div>
+                    ) : step === 'OTP' ? (
                         <Form {...otpForm}>
                             <form onSubmit={otpForm.handleSubmit(onOtpSubmit)} className="space-y-4">
                                 <Controller
@@ -223,8 +289,8 @@ export default function LoginPage() {
                                         </FormItem>
                                     )}
                                 />
-                                <Button type="submit" className="w-full" disabled={loading || otpValue?.length !== 6}>
-                                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" className="w-full" disabled={isLoading || otpValue?.length !== 6}>
+                                    {loadingState === 'OTP' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Verify OTP
                                 </Button>
                                 <Button
@@ -232,7 +298,7 @@ export default function LoginPage() {
                                     className="w-full"
                                     type="button"
                                     onClick={() => setStep('INPUT')}
-                                    disabled={loading}
+                                    disabled={isLoading}
                                 >
                                     <ArrowLeft className="mr-2 h-4 w-4" />
                                     Back to Login
@@ -276,8 +342,8 @@ export default function LoginPage() {
                                             </FormItem>
                                         )}
                                     />
-                                    <Button type="submit" className="w-full" disabled={loading}>
-                                        {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Button type="submit" className="w-full" disabled={isLoading}>
+                                        {loadingState === 'PHONE' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                         Send OTP
                                     </Button>
                                     <Button
@@ -285,7 +351,7 @@ export default function LoginPage() {
                                         className="w-full"
                                         type="button"
                                         onClick={() => setAuthMethod('EMAIL')}
-                                        disabled={loading}
+                                        disabled={isLoading}
                                     >
                                         Use Email instead
                                     </Button>
@@ -297,9 +363,9 @@ export default function LoginPage() {
                                     variant="outline"
                                     className="w-full py-5"
                                     onClick={handleGoogleLogin}
-                                    disabled={loading}
+                                    disabled={isLoading}
                                 >
-                                    {loading ? (
+                                    {loadingState === 'GOOGLE' ? (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     ) : (
                                         <svg className="mr-2 h-4 w-4" aria-hidden="true" focusable="false" data-prefix="fab" data-icon="google" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 488 512">
@@ -334,8 +400,8 @@ export default function LoginPage() {
                                                 </FormItem>
                                             )}
                                         />
-                                        <Button type="submit" className="w-full" disabled={loading}>
-                                            {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                        <Button type="submit" className="w-full" disabled={isLoading}>
+                                            {loadingState === 'EMAIL' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                             <Mail className="mr-2 h-4 w-4" />
                                             Continue with Email
                                         </Button>
@@ -347,7 +413,7 @@ export default function LoginPage() {
                                         variant="link"
                                         className="text-xs text-muted-foreground"
                                         onClick={() => setAuthMethod('PHONE')}
-                                        disabled={loading}
+                                        disabled={isLoading}
                                     >
                                         Sign in with Phone (Legacy)
                                     </Button>
@@ -358,6 +424,14 @@ export default function LoginPage() {
                 </CardContent>
             </Card>
         </div>
+    )
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader2 className="h-8 w-8 animate-spin" /></div>}>
+            <LoginContent />
+        </Suspense>
     )
 }
 

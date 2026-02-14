@@ -22,8 +22,7 @@ export function MobileSidebar() {
 
     const handleLogout = async () => {
         await supabase.auth.signOut()
-        router.push('/login')
-        setOpen(false)
+        window.location.href = '/login'
     }
 
     const handleModeSwitch = () => {
