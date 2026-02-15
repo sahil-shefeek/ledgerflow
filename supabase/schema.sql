@@ -482,7 +482,7 @@ create policy "Users can update own recurring transactions" on public.recurring_
 
 -- 20260215_shared_expenses_schema.sql
 
--- 1. Create tables
+-- 1. Create tables first (ORDER MATTERS for Foreign Keys and Policies)
 
 -- groups
 CREATE TABLE IF NOT EXISTS public.groups (
@@ -495,6 +495,72 @@ CREATE TABLE IF NOT EXISTS public.groups (
     created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- group_members
+CREATE TABLE IF NOT EXISTS public.group_members (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id),
+    ghost_name TEXT,
+    avatar_url TEXT,
+    joined_at TIMESTAMPTZ DEFAULT now(),
+    CONSTRAINT check_user_or_ghost CHECK ((user_id IS NOT NULL) OR (ghost_name IS NOT NULL)),
+    UNIQUE (group_id, user_id)
+);
+
+-- friendships
+CREATE TABLE IF NOT EXISTS public.friendships (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id_1 UUID REFERENCES public.profiles(id),
+    user_id_2 UUID REFERENCES public.profiles(id),
+    status TEXT CHECK (status IN ('PENDING', 'ACCEPTED')),
+    CONSTRAINT check_user_order CHECK (user_id_1 < user_id_2) -- Prevent duplicates
+);
+
+-- transaction_splits
+CREATE TABLE IF NOT EXISTS public.transaction_splits (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_id UUID REFERENCES public.transactions(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.profiles(id),
+    group_member_id UUID REFERENCES public.group_members(id),
+    amount NUMERIC NOT NULL,
+    percentage NUMERIC,
+    is_settled BOOLEAN DEFAULT false
+);
+
+-- notifications
+CREATE TABLE IF NOT EXISTS public.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES public.profiles(id),
+    type TEXT CHECK (type IN ('FRIEND_REQ', 'GROUP_INVITE', 'EXPENSE_ADDED')),
+    title TEXT,
+    message TEXT,
+    data JSONB,
+    is_read BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ DEFAULT now()
+);
+
+
+-- 2. Update Existing Tables
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'group_id') THEN
+        ALTER TABLE public.transactions ADD COLUMN group_id UUID REFERENCES public.groups(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'payer_id') THEN
+        ALTER TABLE public.transactions ADD COLUMN payer_id UUID REFERENCES public.profiles(id);
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'split_type') THEN
+        ALTER TABLE public.transactions ADD COLUMN split_type TEXT DEFAULT 'EQUALLY' CHECK (split_type IN ('EQUALLY', 'BY_AMOUNT', 'BY_PERCENTAGE'));
+    END IF;
+END $$;
+
+
+-- 3. Enable RLS and Create Policies (Now that all tables exist)
+
+-- groups policies
 ALTER TABLE public.groups ENABLE ROW LEVEL SECURITY;
 
 DO $$
@@ -509,19 +575,7 @@ BEGIN
     END IF;
 END $$;
 
-
--- group_members
-CREATE TABLE IF NOT EXISTS public.group_members (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    group_id UUID REFERENCES public.groups(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES public.profiles(id),
-    ghost_name TEXT,
-    avatar_url TEXT,
-    joined_at TIMESTAMPTZ DEFAULT now(),
-    CONSTRAINT check_user_or_ghost CHECK ((user_id IS NOT NULL) OR (ghost_name IS NOT NULL)),
-    UNIQUE (group_id, user_id)
-);
-
+-- group_members policies
 ALTER TABLE public.group_members ENABLE ROW LEVEL SECURITY;
 
 DO $$
@@ -536,16 +590,7 @@ BEGIN
     END IF;
 END $$;
 
-
--- friendships
-CREATE TABLE IF NOT EXISTS public.friendships (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id_1 UUID REFERENCES public.profiles(id),
-    user_id_2 UUID REFERENCES public.profiles(id),
-    status TEXT CHECK (status IN ('PENDING', 'ACCEPTED')),
-    CONSTRAINT check_user_order CHECK (user_id_1 < user_id_2) -- Prevent duplicates
-);
-
+-- friendships policies
 ALTER TABLE public.friendships ENABLE ROW LEVEL SECURITY;
 
 DO $$
@@ -560,18 +605,7 @@ BEGIN
     END IF;
 END $$;
 
-
--- transaction_splits
-CREATE TABLE IF NOT EXISTS public.transaction_splits (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    transaction_id UUID REFERENCES public.transactions(id) ON DELETE CASCADE,
-    user_id UUID REFERENCES public.profiles(id),
-    group_member_id UUID REFERENCES public.group_members(id),
-    amount NUMERIC NOT NULL,
-    percentage NUMERIC,
-    is_settled BOOLEAN DEFAULT false
-);
-
+-- transaction_splits policies
 ALTER TABLE public.transaction_splits ENABLE ROW LEVEL SECURITY;
 
 DO $$
@@ -593,19 +627,7 @@ BEGIN
     END IF;
 END $$;
 
-
--- notifications
-CREATE TABLE IF NOT EXISTS public.notifications (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES public.profiles(id),
-    type TEXT CHECK (type IN ('FRIEND_REQ', 'GROUP_INVITE', 'EXPENSE_ADDED')),
-    title TEXT,
-    message TEXT,
-    data JSONB,
-    is_read BOOLEAN DEFAULT false,
-    created_at TIMESTAMPTZ DEFAULT now()
-);
-
+-- notifications policies
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 DO $$
@@ -629,27 +651,7 @@ BEGIN
     END IF;
 END $$;
 
-
--- 2. Update Existing Tables
-
--- transactions
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'group_id') THEN
-        ALTER TABLE public.transactions ADD COLUMN group_id UUID REFERENCES public.groups(id);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'payer_id') THEN
-        ALTER TABLE public.transactions ADD COLUMN payer_id UUID REFERENCES public.profiles(id);
-    END IF;
-
-    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'transactions' AND column_name = 'split_type') THEN
-        ALTER TABLE public.transactions ADD COLUMN split_type TEXT DEFAULT 'EQUALLY' CHECK (split_type IN ('EQUALLY', 'BY_AMOUNT', 'BY_PERCENTAGE'));
-    END IF;
-END $$;
-
-
--- Update RLS for transactions
+-- transactions policies
 DROP POLICY IF EXISTS "Users can view own transactions" ON public.transactions;
 
 CREATE POLICY "Users can view own or involved transactions" ON public.transactions
