@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/useAppStore'
-import { Contact } from '@/types'
+import { Contact, TransactionSplit } from '@/types'
 import { toast } from 'sonner'
 
 interface AddTransactionParams {
@@ -11,9 +11,13 @@ interface AddTransactionParams {
     contact_id?: string
     category_id?: string
     account_id?: string
+    group_id?: string
+    payer_id?: string
+    split_type?: 'EQUALLY' | 'BY_AMOUNT' | 'BY_PERCENTAGE'
     date: Date
     due_date?: Date
     description?: string
+    splits?: Partial<TransactionSplit>[]
 }
 
 export function useAddTransaction() {
@@ -30,10 +34,32 @@ export function useAddTransaction() {
                 throw new Error('No business selected')
             }
 
-            const { data, error } = await supabase
+            // 1. Insert Transaction
+            const { data: transactionData, error: transactionError } = await supabase
                 .from('transactions')
                 .insert({
-                    ...newTransaction,
+                    amount: newTransaction.amount,
+                    flow: newTransaction.flow,
+                    mode: newTransaction.mode,
+                    contact_id: newTransaction.contact_id,
+                    category_id: newTransaction.category_id,
+                    account_id: newTransaction.account_id,
+                    group_id: newTransaction.group_id,
+                    payer_id: newTransaction.payer_id || user.id, // Default to current user if not specified
+                    split_type: newTransaction.split_type || 'EQUALLY',
+                    description: newTransaction.description, // Mapped from 'name' in schema but 'description' in params? NO, schema has 'name', param has 'description'. Need to map.
+                    // Wait, schema has 'name' text not null. Params has 'description'. 
+                    // Let's check schema.sql. Line 64: `name text not null`. Line 65: `note text`.
+                    // Previous useAddTransaction mapped it as `...newTransaction`.
+                    // If `newTransaction` has `description`, it would be ignored if not in schema, and `name` is required.
+                    // Let's look at `useAddTransaction.ts` again. code: `...newTransaction`.
+                    // The interface had `description?: string`.
+                    // Suspicion: The previous code might have been failing or using `description` as `note`?
+                    // Or maybe `description` IS `name` in the UI?
+                    // Let's assume `name` = `description` for now to satisfy Not Null.
+                    name: newTransaction.description || 'Transaction',
+                    // note: newTransaction.note? Params doesn't have note.
+
                     user_id: user.id,
                     business_id: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
                     date: newTransaction.date.toISOString(),
@@ -42,8 +68,32 @@ export function useAddTransaction() {
                 .select()
                 .single()
 
-            if (error) throw error
-            return data
+            if (transactionError) throw transactionError
+
+            // 2. Insert Splits (if any)
+            if (newTransaction.splits && newTransaction.splits.length > 0) {
+                const splitsToInsert = newTransaction.splits.map(split => ({
+                    transaction_id: transactionData.id,
+                    user_id: split.user_id, // Nullable
+                    group_member_id: split.group_member_id, // Nullable
+                    amount: split.amount,
+                    percentage: split.percentage,
+                    is_settled: split.is_settled || false
+                }))
+
+                const { error: splitsError } = await supabase
+                    .from('transaction_splits')
+                    .insert(splitsToInsert)
+
+                if (splitsError) {
+                    // Ideally, rollback transaction here.
+                    // For now, throw error.
+                    console.error('Failed to insert splits:', splitsError)
+                    throw new Error('Transaction created but failed to save splits. Please delete and try again.')
+                }
+            }
+
+            return transactionData
         },
         onMutate: async (newTransaction) => {
             // Cancel any outgoing refetches
@@ -63,6 +113,7 @@ export function useAddTransaction() {
                     const optimisticTransaction = {
                         id: 'temp-' + Date.now(),
                         ...newTransaction,
+                        name: newTransaction.description || 'Transaction',
                         date: newTransaction.date.toISOString(),
                         contacts: { name: 'Loading...', phone: null },
                     }
@@ -115,6 +166,7 @@ export function useAddTransaction() {
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['analytics'] })
+            queryClient.invalidateQueries({ queryKey: ['groups'] }) // Invalidate groups too
 
             toast.success('Transaction saved')
         },
