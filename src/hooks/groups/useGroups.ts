@@ -11,20 +11,31 @@ export function useGroups() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('User not authenticated')
 
-            // Fetch groups where the user is a member
+            // 1. Get group IDs first
+            const { data: memberData, error: memberError } = await supabase
+                .from('group_members')
+                .select('group_id')
+                .eq('user_id', user.id)
+
+            if (memberError) throw memberError
+
+            // If no groups, return empty array immediately to avoid "in ()" syntax error
+            // and saving a round trip.
+            if (!memberData || memberData.length === 0) {
+                return []
+            }
+
+            const groupIds = memberData.map(m => m.group_id)
+
+            // 2. Fetch groups
             const { data, error } = await supabase
                 .from('groups')
                 .select('*')
-                .filter('id', 'in', (
-                    await supabase
-                        .from('group_members')
-                        .select('group_id')
-                        .eq('user_id', user.id)
-                ).data?.map((m: { group_id: string }) => m.group_id) || [])
+                .in('id', groupIds)
                 .order('created_at', { ascending: false })
 
             if (error) throw error
             return data as Group[]
-        },
+        }
     })
 }
