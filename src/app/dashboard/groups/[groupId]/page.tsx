@@ -13,6 +13,8 @@ import { GroupSettingsDrawer } from '@/components/groups/GroupSettingsDrawer'
 import { useTransactions } from '@/hooks/useTransactions'
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
 import { formatDistanceToNow } from 'date-fns'
+import { SplitExpenseDrawer } from '@/components/groups/SplitExpenseDrawer'
+import { useProfile } from '@/hooks/use-profile'
 
 /* 
   Since Step 3 requirements specify using a placeholder or adapting PersonalTransactionList,
@@ -104,6 +106,7 @@ export default function GroupDetailsPage() {
     const groupId = params.groupId as string
 
     const { data: groupDetails, isLoading } = useGroupDetails(groupId)
+    const { profile } = useProfile()
 
     if (isLoading) {
         return <div className="p-4 space-y-4">
@@ -170,10 +173,23 @@ export default function GroupDetailsPage() {
                             <Copy className="mr-2 h-4 w-4" />
                             Invite
                         </Button>
-                        <Button className="flex-1">
-                            <Plus className="mr-2 h-4 w-4" />
-                            Add Expense
-                        </Button>
+                        {profile?.id ? (
+                            <SplitExpenseDrawer
+                                groupId={group.id}
+                                members={members}
+                                currentUserId={profile.id}
+                            >
+                                <Button className="flex-1">
+                                    <Plus className="mr-2 h-4 w-4" />
+                                    Add Expense
+                                </Button>
+                            </SplitExpenseDrawer>
+                        ) : (
+                            <Button className="flex-1" disabled>
+                                <Plus className="mr-2 h-4 w-4" />
+                                Loading...
+                            </Button>
+                        )}
                     </div>
                 </CardContent>
             </Card>

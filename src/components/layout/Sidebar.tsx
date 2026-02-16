@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useAppStore } from '@/store/useAppStore'
 import { cn } from '@/lib/utils'
 import {
@@ -25,6 +25,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export function Sidebar() {
     const pathname = usePathname()
+    const searchParams = useSearchParams()
     const { mode, toggleMode } = useAppStore()
     const router = useRouter()
     const supabase = createClient()
@@ -44,6 +45,12 @@ export function Sidebar() {
         {
             label: 'People',
             href: '/dashboard/people',
+            icon: Users,
+            showIn: 'personal',
+        },
+        {
+            label: 'Groups',
+            href: '/dashboard/people?tab=groups',
             icon: Users,
             showIn: 'personal',
         },
@@ -83,13 +90,25 @@ export function Sidebar() {
                     {navItems.map((item) => {
                         if (item.showIn && item.showIn !== mode) return null
                         const Icon = item.icon
+
+                        let isActive = pathname === item.href
+
+                        // Special handling for People vs Groups
+                        if (item.href === '/dashboard/people') {
+                            isActive = pathname === '/dashboard/people' && !searchParams.has('tab')
+                        } else if (item.href === '/dashboard/people?tab=groups') {
+                            isActive = pathname === '/dashboard/people' && searchParams.get('tab') === 'groups'
+                        } else {
+                            isActive = pathname === item.href
+                        }
+
                         return (
                             <Link
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
                                     'flex items-center gap-3 rounded-lg px-3 py-2 transition-all hover:bg-sidebar-accent hover:text-sidebar-accent-foreground',
-                                    pathname === item.href
+                                    isActive
                                         ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                                         : 'text-muted-foreground'
                                 )}

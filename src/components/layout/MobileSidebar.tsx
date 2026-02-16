@@ -4,7 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/co
 import { Button } from '@/components/ui/button'
 import { useAppStore } from '@/store/useAppStore'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Briefcase, LogOut, Menu, Wallet, Settings, Users, LayoutDashboard, PieChart, List } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -16,6 +16,7 @@ export function MobileSidebar() {
     const { mode, toggleMode } = useAppStore()
     const router = useRouter()
     const pathname = usePathname()
+    const searchParams = useSearchParams()
     const supabase = createClient()
     const [open, setOpen] = useState(false)
     const { profile } = useProfile()
@@ -40,6 +41,12 @@ export function MobileSidebar() {
         {
             label: 'People',
             href: '/dashboard/people',
+            icon: Users,
+            showIn: 'personal',
+        },
+        {
+            label: 'Groups',
+            href: '/dashboard/people?tab=groups',
             icon: Users,
             showIn: 'personal',
         },
@@ -87,7 +94,17 @@ export function MobileSidebar() {
                     {navItems.map((item) => {
                         if (item.showIn && item.showIn !== mode) return null
                         const Icon = item.icon
-                        const isActive = pathname === item.href
+
+                        let isActive = pathname === item.href
+
+                        // Special handling for People vs Groups
+                        if (item.href === '/dashboard/people') {
+                            isActive = pathname === '/dashboard/people' && !searchParams.has('tab')
+                        } else if (item.href === '/dashboard/people?tab=groups') {
+                            isActive = pathname === '/dashboard/people' && searchParams.get('tab') === 'groups'
+                        } else {
+                            isActive = pathname === item.href
+                        }
 
                         return (
                             <Button

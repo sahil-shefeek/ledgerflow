@@ -4,7 +4,7 @@ import { PeopleList } from '@/components/personal/PeopleList'
 import { usePersonalPeople } from '@/hooks/personal/usePersonalPeople'
 import { Contact } from '@/types'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GroupsList } from '@/components/groups/GroupsList'
@@ -15,6 +15,9 @@ type SortOption = 'LATEST' | 'MOST_ACTIVE'
 
 export default function PeoplePage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
+    const activeTab = searchParams.get('tab') || 'people'
+
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')
 
@@ -23,13 +26,19 @@ export default function PeoplePage() {
         sortBy
     })
 
+    const handleTabChange = (value: string) => {
+        const params = new URLSearchParams(searchParams.toString())
+        params.set('tab', value)
+        router.push(`/dashboard/people?${params.toString()}`)
+    }
+
     return (
         <div className="flex flex-col h-full space-y-4">
             <div className="flex items-center justify-between px-1">
                 <h1 className="text-2xl font-bold tracking-tight">Friends & Groups</h1>
             </div>
 
-            <Tabs defaultValue="people" className="flex-1 flex flex-col min-h-0">
+            <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between gap-4 mb-4">
                     <TabsList className="grid w-full max-w-[200px] grid-cols-2">
                         <TabsTrigger value="people">People</TabsTrigger>
