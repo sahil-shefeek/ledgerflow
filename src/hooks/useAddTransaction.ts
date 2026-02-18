@@ -16,7 +16,8 @@ interface AddTransactionParams {
     split_type?: 'EQUALLY' | 'BY_AMOUNT' | 'BY_PERCENTAGE'
     date: Date
     due_date?: Date
-    description?: string
+    name: string
+    note?: string
     splits?: Partial<TransactionSplit>[]
 }
 
@@ -47,18 +48,8 @@ export function useAddTransaction() {
                     group_id: newTransaction.group_id,
                     payer_id: newTransaction.payer_id || user.id, // Default to current user if not specified
                     split_type: newTransaction.split_type || 'EQUALLY',
-                    description: newTransaction.description, // Mapped from 'name' in schema but 'description' in params? NO, schema has 'name', param has 'description'. Need to map.
-                    // Wait, schema has 'name' text not null. Params has 'description'. 
-                    // Let's check schema.sql. Line 64: `name text not null`. Line 65: `note text`.
-                    // Previous useAddTransaction mapped it as `...newTransaction`.
-                    // If `newTransaction` has `description`, it would be ignored if not in schema, and `name` is required.
-                    // Let's look at `useAddTransaction.ts` again. code: `...newTransaction`.
-                    // The interface had `description?: string`.
-                    // Suspicion: The previous code might have been failing or using `description` as `note`?
-                    // Or maybe `description` IS `name` in the UI?
-                    // Let's assume `name` = `description` for now to satisfy Not Null.
-                    name: newTransaction.description || 'Transaction',
-                    // note: newTransaction.note? Params doesn't have note.
+                    name: newTransaction.name,
+                    note: newTransaction.note,
 
                     user_id: user.id,
                     business_id: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
@@ -113,7 +104,7 @@ export function useAddTransaction() {
                     const optimisticTransaction = {
                         id: 'temp-' + Date.now(),
                         ...newTransaction,
-                        name: newTransaction.description || 'Transaction',
+                        name: newTransaction.name,
                         date: newTransaction.date.toISOString(),
                         contacts: { name: 'Loading...', phone: null },
                     }

@@ -18,7 +18,7 @@ interface TransactionDetailsDrawerProps {
         amount: number
         date: string
         flow: string
-        description?: string
+        name: string
         note?: string
         category?: { name: string; icon: string } | null
         account?: { name: string } | null
@@ -93,44 +93,46 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                     {transaction.category?.icon} {transaction.category?.name || 'Uncategorized'}
                                 </span>
                             </div>
-                            {transaction.description && (
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Description</span>
-                                    <span className="font-medium">{transaction.description}</span>
-                                </div>
-                            )}
-                            {transaction.note && (
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Note</span>
-                                    <span className="font-medium">{transaction.note}</span>
-                                </div>
-                            )}
-                            {transaction.account && (
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">Account</span>
-                                    <span className="font-medium">{transaction.account.name}</span>
-                                </div>
-                            )}
-                        </div>
+                            <div className="grid gap-1">
+                                {transaction.name && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">Description</span>
+                                        <span className="font-medium">{transaction.name}</span>
+                                    </div>
+                                )}
+                                {transaction.note && (
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-muted-foreground">Note</span>
+                                        <span className="font-medium">{transaction.note}</span>
+                                    </div>
+                                )}
+                                {transaction.account && (
+                                    <div className="flex justify-between">
+                                        <span className="text-muted-foreground">Account</span>
+                                        <span className="font-medium">{transaction.account.name}</span>
+                                    </div>
+                                )}
+                            </div>
 
-                        <div className="flex gap-3">
-                            <Button
-                                variant="outline"
-                                className="flex-1"
-                                onClick={handleEdit}
-                            >
-                                <Edit className="mr-2 h-4 w-4" />
-                                Edit
-                            </Button>
-                            <Button
-                                variant="destructive"
-                                className="flex-1"
-                                onClick={handleDelete}
-                                disabled={isDeleting}
-                            >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
-                            </Button>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1"
+                                    onClick={handleEdit}
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    className="flex-1"
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                >
+                                    <Trash2 className="mr-2 h-4 w-4" />
+                                    Delete
+                                </Button>
+                            </div>
                         </div>
                     </div>
                 </div>

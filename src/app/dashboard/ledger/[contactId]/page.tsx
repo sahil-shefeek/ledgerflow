@@ -43,11 +43,10 @@ interface Transaction {
     amount: number
     date: string
     flow: string
-    description?: string
     note?: string
     category?: { name: string; icon: string } | null
     account?: { name: string } | null
-    name?: string // For contact transactions sometimes name is used?
+    name: string
     mode: 'BUSINESS' | 'PERSONAL' // Added mode
 }
 
@@ -253,7 +252,8 @@ export default function LedgerPage() {
                             >
                                 <CardContent className="p-4 flex items-center justify-between">
                                     <div className="space-y-1">
-                                        <div className="font-medium">{t.description || t.name || 'No description'}</div>
+                                        <div className="font-medium">{t.name || 'No description'}</div>
+                                        {t.note && <div className="text-xs text-muted-foreground">{t.note}</div>}
                                         <div className="text-xs text-muted-foreground">
                                             {formatTransactionDate(new Date(t.date))}
                                         </div>

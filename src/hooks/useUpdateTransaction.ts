@@ -12,7 +12,8 @@ interface UpdateTransactionParams {
     account_id?: string
     date: Date
     due_date?: Date
-    description?: string
+    name: string
+    note?: string
 }
 
 export function useUpdateTransaction() {
@@ -35,7 +36,8 @@ export function useUpdateTransaction() {
                     account_id: updatedTransaction.account_id,
                     date: updatedTransaction.date.toISOString(),
                     due_date: updatedTransaction.due_date?.toISOString(),
-                    description: updatedTransaction.description,
+                    name: updatedTransaction.name,
+                    note: updatedTransaction.note,
                 })
                 .eq('id', updatedTransaction.id)
                 .select()

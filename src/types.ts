@@ -63,7 +63,8 @@ export interface Transaction {
     flow: 'IN' | 'OUT'
     mode: 'BUSINESS' | 'PERSONAL'
     date: string
-    description: string | null
+    name: string
+    note?: string | null
     contact_id: string | null
     group_id?: string | null
     payer_id?: string | null

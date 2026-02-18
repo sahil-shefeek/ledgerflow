@@ -34,7 +34,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
 
     // Step 1 State
     const [amount, setAmount] = useState<string>('')
-    const [description, setDescription] = useState('')
+    const [name, setName] = useState('')
 
     const numericAmount = parseFloat(amount) || 0
 
@@ -64,7 +64,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
         if (!open) {
             setStep(1)
             setAmount('')
-            setDescription('')
+            setName('')
             // We could reset split calculator too if expanded, but it resets on mount mostly.
         }
     }, [open])
@@ -74,7 +74,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
             toast.error('Please enter a valid amount')
             return
         }
-        if (!description.trim()) {
+        if (!name.trim()) {
             toast.error('Please enter a description')
             return
         }
@@ -104,7 +104,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
 
         addTransaction({
             amount: numericAmount,
-            description: description,
+            name: name,
             date: new Date(), // Now
             flow: 'OUT', // Expense is usually OUT ? 
             // Wait, if I paid, it's OUT for me.
@@ -197,11 +197,11 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Description</Label>
+                                <Label>Expense Name</Label>
                                 <Input
                                     placeholder="What's this for?"
-                                    value={description}
-                                    onChange={e => setDescription(e.target.value)}
+                                    value={name}
+                                    onChange={e => setName(e.target.value)}
                                 />
                             </div>
                         </div>
