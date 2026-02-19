@@ -69,7 +69,8 @@ export function useAddTransaction() {
                     group_member_id: split.group_member_id, // Nullable
                     amount: split.amount,
                     percentage: split.percentage,
-                    is_settled: split.is_settled || false
+                    is_settled: split.is_settled || false,
+                    member_name_snapshot: split.member_name_snapshot
                 }))
 
                 const { error: splitsError } = await supabase

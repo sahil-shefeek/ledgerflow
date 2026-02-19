@@ -28,7 +28,7 @@ export function useTransactions(filters?: TransactionFilters | string, mode: 'BU
                     contacts(name, phone),
                     payer:profiles!payer_id(full_name, avatar_url),
                     group:groups(id, name),
-                    splits:transaction_splits(user_id, amount, group_member_id)
+                    splits:transaction_splits(user_id, amount, group_member_id, member_name_snapshot)
                 `)
                 .order('date', { ascending: false })
                 .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1)

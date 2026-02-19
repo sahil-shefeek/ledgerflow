@@ -44,6 +44,7 @@ export interface TransactionSplit {
     amount: number
     percentage?: number
     is_settled: boolean
+    member_name_snapshot?: string
 }
 
 export interface Notification {

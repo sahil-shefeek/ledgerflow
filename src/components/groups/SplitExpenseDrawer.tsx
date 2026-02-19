@@ -104,7 +104,8 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                 group_member_id: member?.id, // Important for ghosts
                 amount: a.amountOwed,
                 percentage: a.percent,
-                is_settled: member?.id === payerId // Payer is settled
+                is_settled: member?.id === payerId, // Payer is settled
+                member_name_snapshot: member ? getMemberName(member.id) : 'Unknown'
             }
         })
 
