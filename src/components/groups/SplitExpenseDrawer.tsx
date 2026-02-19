@@ -109,27 +109,18 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
             }
         })
 
-        // Also, useAddTransaction logic expects `user_id` sometimes.
-        // It creates `transaction_splits`.
+        // Resolve the payer's user_id from the selected group member (fallback for real users)
+        const payerMember = members.find(m => m.id === payerId)
 
         addTransaction({
             amount: numericAmount,
             name: name,
-            date: new Date(), // Now
-            flow: 'OUT', // Expense is usually OUT ? 
-            // Wait, if I paid, it's OUT for me.
-            // If I am receiving, it's different.
-            // In Groups, usually "Total Amount" is the transaction amount.
-            // The split determines balances.
-            // We'll mark it as 'OUT' (Expense).
-            mode: 'PERSONAL', // Or BUSINESS? Group expenses usually Personal unless specified?
-            // Prompt doesn't specify mode. But context is 'Groups'.
-            // `useTransaction` schema has `group_id`.
-            // I'll assume 'PERSONAL' for now or 'BUSINESS' if group is business?
-            // Group type in `types.ts` is just 'GENERAL'.
-            // I'll default to 'PERSONAL'.
+            date: new Date(),
+            flow: 'OUT',
+            mode: 'PERSONAL',
             group_id: groupId,
-            payer_id: payerId,
+            payer_id: payerMember?.user_id || undefined, // Real user fallback
+            payer_group_member_id: payerId, // Primary: group_member.id
             split_type: splitType,
             splits: splitsPayload,
             account_id: accountId

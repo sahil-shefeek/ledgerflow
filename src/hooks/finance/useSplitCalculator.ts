@@ -23,10 +23,14 @@ interface SplitState {
 }
 
 export function useSplitCalculator({ totalAmount, members, currentUserId }: UseSplitCalculatorProps) {
+    // Find the group member entry for the current user
+    const currentMember = members.find(m => m.user_id === currentUserId)
+    const defaultPayerId = currentMember?.id || members[0]?.id || ''
+
     // Initial state
     const [state, setState] = useState<SplitState>({
         splitType: 'EQUALLY',
-        payerId: currentUserId,
+        payerId: defaultPayerId,
         shares: {},
         selectedMembers: members.map(m => m.id), // Default to all selected
     })

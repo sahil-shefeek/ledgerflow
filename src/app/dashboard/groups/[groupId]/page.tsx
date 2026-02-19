@@ -7,15 +7,15 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { ArrowLeft, Copy, Settings, Share2, Plus } from 'lucide-react'
+import { ArrowLeft, Copy, Settings, Plus, Handshake } from 'lucide-react'
 import { toast } from 'sonner'
 import { GroupSettingsDrawer } from '@/components/groups/GroupSettingsDrawer'
-import { useTransactions } from '@/hooks/useTransactions'
-import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty'
-import { formatDistanceToNow } from 'date-fns'
 import { SplitExpenseDrawer } from '@/components/groups/SplitExpenseDrawer'
+import { SettleUpDrawer } from '@/components/groups/SettleUpDrawer'
 import { useProfile } from '@/hooks/use-profile'
 import { GroupTransactionList } from '@/components/groups/GroupTransactionList'
+import { useGroupBalances } from '@/hooks/finance/useGroupBalances'
+import { cn } from '@/lib/utils'
 
 function GroupExpensesList({ groupId }: { groupId: string }) {
     const { profile } = useProfile()
@@ -27,33 +27,81 @@ function GroupExpensesList({ groupId }: { groupId: string }) {
     )
 }
 
-function GroupBalancesList({ members }: { members: any[] }) {
+function GroupBalancesList({ groupId, members, currentUserId }: {
+    groupId: string
+    members: any[]
+    currentUserId: string
+}) {
+    const { data: balances, isLoading } = useGroupBalances(groupId, members)
+
+    const getMemberName = (member: any) => {
+        if (member.user_id === currentUserId) return 'You'
+        return member.ghost_name || member.profiles?.full_name || 'Member'
+    }
+
     return (
         <div className="space-y-4">
             <Card>
                 <CardHeader>
-                    <CardTitle className="text-lg">Members</CardTitle>
+                    <CardTitle className="text-lg">Balances</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    {members.map((member) => (
-                        <div key={member.id} className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                                <Avatar>
-                                    <AvatarImage src={member.avatar_url || member.profiles?.avatar_url} />
-                                    <AvatarFallback>{(member.ghost_name || member.profiles?.full_name || '?').slice(0, 2).toUpperCase()}</AvatarFallback>
-                                </Avatar>
-                                <div>
-                                    <div className="font-medium">{member.ghost_name || member.profiles?.full_name}</div>
-                                    <div className="text-xs text-muted-foreground capitalize">{member.type === 'REAL' ? 'Member' : 'Ghost User'}</div>
+                    {isLoading ? (
+                        <div className="space-y-3">
+                            {[1, 2, 3].map(i => (
+                                <div key={i} className="flex items-center gap-3">
+                                    <Skeleton className="h-10 w-10 rounded-full" />
+                                    <Skeleton className="h-4 w-32" />
+                                    <Skeleton className="h-4 w-16 ml-auto" />
                                 </div>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                                ₹0.00
-                            </div>
+                            ))}
                         </div>
-                    ))}
+                    ) : (
+                        members.map((member) => {
+                            const balance = balances?.[member.id] ?? 0
+                            const isPositive = balance > 0
+                            const isNegative = balance < 0
+                            const isSettled = balance === 0
+
+                            return (
+                                <div key={member.id} className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar>
+                                            <AvatarImage src={member.avatar_url || member.profiles?.avatar_url} />
+                                            <AvatarFallback>
+                                                {(member.ghost_name || member.profiles?.full_name || '?').slice(0, 2).toUpperCase()}
+                                            </AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <div className="font-medium">{getMemberName(member)}</div>
+                                            <div className="text-xs text-muted-foreground capitalize">
+                                                {member.user_id ? 'Member' : 'Ghost User'}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className={cn(
+                                        "text-sm font-semibold",
+                                        isPositive && "text-green-600 dark:text-green-400",
+                                        isNegative && "text-red-600 dark:text-red-400",
+                                        isSettled && "text-muted-foreground"
+                                    )}>
+                                        {isPositive && `Gets back ₹${balance.toFixed(2)}`}
+                                        {isNegative && `Owes ₹${Math.abs(balance).toFixed(2)}`}
+                                        {isSettled && 'Settled'}
+                                    </div>
+                                </div>
+                            )
+                        })
+                    )}
                 </CardContent>
             </Card>
+
+            <SettleUpDrawer groupId={groupId} members={members} currentUserId={currentUserId}>
+                <Button variant="outline" className="w-full gap-2">
+                    <Handshake className="h-4 w-4" />
+                    Settle Up
+                </Button>
+            </SettleUpDrawer>
         </div>
     )
 }
@@ -83,13 +131,10 @@ export default function GroupDetailsPage() {
     const { group, members } = groupDetails
 
     const copyInviteLink = () => {
-        // Mock invite link for now
         const link = `${window.location.origin}/join/${group.id}`
         navigator.clipboard.writeText(link)
         toast.success('Invite link copied to clipboard')
     }
-
-    const currentUserIsAdmin = group.created_by
 
     return (
         <div className="flex flex-col h-full space-y-4">
@@ -161,10 +206,15 @@ export default function GroupDetailsPage() {
                         <GroupExpensesList groupId={groupId} />
                     </TabsContent>
                     <TabsContent value="balances" className="m-0 h-full">
-                        <GroupBalancesList members={members} />
+                        <GroupBalancesList
+                            groupId={groupId}
+                            members={members}
+                            currentUserId={profile?.id || ''}
+                        />
                     </TabsContent>
                 </div>
             </Tabs>
         </div>
     )
 }
+

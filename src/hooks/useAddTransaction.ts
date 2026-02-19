@@ -13,6 +13,7 @@ interface AddTransactionParams {
     account_id?: string
     group_id?: string
     payer_id?: string
+    payer_group_member_id?: string
     split_type?: 'EQUALLY' | 'BY_AMOUNT' | 'BY_PERCENTAGE'
     date: Date
     due_date?: Date
@@ -47,6 +48,7 @@ export function useAddTransaction() {
                     account_id: newTransaction.account_id,
                     group_id: newTransaction.group_id,
                     payer_id: newTransaction.payer_id || user.id, // Default to current user if not specified
+                    payer_group_member_id: newTransaction.payer_group_member_id || null,
                     split_type: newTransaction.split_type || 'EQUALLY',
                     name: newTransaction.name,
                     note: newTransaction.note,
@@ -159,6 +161,7 @@ export function useAddTransaction() {
             queryClient.invalidateQueries({ queryKey: ['budgets'] })
             queryClient.invalidateQueries({ queryKey: ['analytics'] })
             queryClient.invalidateQueries({ queryKey: ['groups'] }) // Invalidate groups too
+            queryClient.invalidateQueries({ queryKey: ['group-balances'] })
 
             toast.success('Transaction saved')
         },

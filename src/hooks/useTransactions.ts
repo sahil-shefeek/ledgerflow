@@ -25,6 +25,7 @@ export function useTransactions(filters?: TransactionFilters | string, mode: 'BU
                 .from('transactions')
                 .select(`
                     *,
+                    payer_group_member_id,
                     contacts(name, phone),
                     payer:profiles!payer_id(full_name, avatar_url),
                     group:groups(id, name),

@@ -69,6 +69,7 @@ export interface Transaction {
     contact_id: string | null
     group_id?: string | null
     payer_id?: string | null
+    payer_group_member_id?: string | null
     split_type?: 'EQUALLY' | 'BY_AMOUNT' | 'BY_PERCENTAGE'
     splits?: TransactionSplit[]
     contacts?: {
