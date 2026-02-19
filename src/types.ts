@@ -74,4 +74,19 @@ export interface Transaction {
         name: string
         phone: string | null
     }
+    category?: {
+        name: string
+        icon: string
+    } | null
+    payer?: {
+        full_name: string
+        avatar_url: string | null
+    } | null
+    account?: {
+        name: string
+    } | null
+    group?: {
+        id: string
+        name: string
+    } | null
 }

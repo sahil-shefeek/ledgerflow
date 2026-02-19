@@ -4,11 +4,22 @@ import { Transaction } from '@/types'
 
 const PAGE_SIZE = 20
 
-export function useTransactions(contactId?: string, mode: 'BUSINESS' | 'PERSONAL' = 'BUSINESS') {
+export type TransactionFilters = {
+    contactId?: string
+    groupId?: string
+    mode?: 'BUSINESS' | 'PERSONAL'
+}
+
+export function useTransactions(filters?: TransactionFilters | string, mode: 'BUSINESS' | 'PERSONAL' = 'BUSINESS') {
     const supabase = createClient()
 
+    // Handle legacy signature support: useTransactions(contactId, mode)
+    const normalizedFilters: TransactionFilters = typeof filters === 'string'
+        ? { contactId: filters, mode }
+        : { mode, ...filters }
+
     return useInfiniteQuery({
-        queryKey: ['transactions', contactId || 'all', mode],
+        queryKey: ['transactions', normalizedFilters],
         queryFn: async ({ pageParam = 0 }) => {
             let query = supabase
                 .from('transactions')
@@ -22,10 +33,12 @@ export function useTransactions(contactId?: string, mode: 'BUSINESS' | 'PERSONAL
                 .order('date', { ascending: false })
                 .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1)
 
-            if (contactId) {
-                query = query.eq('contact_id', contactId)
+            if (normalizedFilters.contactId) {
+                query = query.eq('contact_id', normalizedFilters.contactId)
+            } else if (normalizedFilters.groupId) {
+                query = query.eq('group_id', normalizedFilters.groupId)
             } else {
-                query = query.eq('mode', mode)
+                query = query.eq('mode', normalizedFilters.mode!)
             }
 
             const { data, error } = await query

@@ -12,14 +12,9 @@ import { toast } from 'sonner'
 import { Check, ChevronRight, ArrowLeft } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
-// Wait, I saw useAuth is not in the list. I saw useAppStore? 
-// useAddTransaction uses supabase.auth.getUser().
-// I'll use a simple hook or just pass currentUserId if possible.
-// Actually `useSplitCalculator` needs `currentUserId`.
-// I'll fetch it or use a hook.
-// Let's assume I can get it from `useAppStore` or just `useUser` context?
-// I'll use `createClient` to get user in useEffect? Or just pass it.
-// Start of file...
+import { useAccounts } from '@/hooks/useAccounts'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+
 
 interface SplitExpenseDrawerProps {
     children: React.ReactNode
@@ -35,6 +30,16 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
     // Step 1 State
     const [amount, setAmount] = useState<string>('')
     const [name, setName] = useState('')
+    const [accountId, setAccountId] = useState<string>('')
+
+    const { data: accounts } = useAccounts()
+
+    useEffect(() => {
+        if (accounts?.length && !accountId) {
+            const defaultAccount = accounts.find(a => a.is_default) || accounts[0]
+            if (defaultAccount) setAccountId(defaultAccount.id)
+        }
+    }, [accounts, accountId])
 
     const numericAmount = parseFloat(amount) || 0
 
@@ -76,6 +81,10 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
         }
         if (!name.trim()) {
             toast.error('Please enter a description')
+            return
+        }
+        if (!accountId) {
+            toast.error('Please select an account')
             return
         }
         setStep(2)
@@ -121,7 +130,8 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
             group_id: groupId,
             payer_id: payerId,
             split_type: splitType,
-            splits: splitsPayload
+            splits: splitsPayload,
+            account_id: accountId
         }, {
             onSuccess: () => {
                 setOpen(false)
@@ -203,6 +213,22 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                     value={name}
                                     onChange={e => setName(e.target.value)}
                                 />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label>Paid from</Label>
+                                <Select value={accountId} onValueChange={setAccountId}>
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select account" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {accounts?.map(acc => (
+                                            <SelectItem key={acc.id} value={acc.id}>
+                                                {acc.name} ({acc.type}) - ₹{acc.balance}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
                     )}

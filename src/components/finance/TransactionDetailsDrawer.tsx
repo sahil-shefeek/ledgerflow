@@ -19,14 +19,15 @@ interface TransactionDetailsDrawerProps {
         date: string
         flow: string
         name: string
-        note?: string
+        note?: string | null
         category?: { name: string; icon: string } | null
         account?: { name: string } | null
-        mode: 'BUSINESS' | 'PERSONAL' // Added mode
+        mode: 'BUSINESS' | 'PERSONAL'
+        group_id?: string | null
     } | null
     open: boolean
     onOpenChange: (open: boolean) => void
-    onEdit: (transaction: any) => void // eslint-disable-line @typescript-eslint/no-explicit-any
+    onEdit: (transaction: any) => void
 }
 
 export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEdit }: TransactionDetailsDrawerProps) {
@@ -37,9 +38,6 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
 
     const handleEdit = () => {
         setEditOpen(true)
-        // onEdit is now optional or we can call it if needed, but we handle the drawer here.
-        // If the parent passed onEdit, we might still want to call it?
-        // Let's assume onEdit is used for other side effects if provided, but we don't rely on it for opening the drawer.
         if (onEdit) onEdit(transaction)
     }
 
@@ -133,11 +131,23 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                     Delete
                                 </Button>
                             </div>
+
+                            {transaction.group_id && (
+                                <Button
+                                    variant="ghost"
+                                    className="w-full text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                    onClick={() => {
+                                        onOpenChange(false)
+                                        window.location.href = `/dashboard/groups/${transaction.group_id}`
+                                    }}
+                                >
+                                    View Group Details
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
             </DrawerContent>
-            {/* Render the appropriate edit drawer based on mode */}
             {transaction.mode === 'BUSINESS' ? (
                 <BusinessTransactionDrawer
                     open={editOpen}

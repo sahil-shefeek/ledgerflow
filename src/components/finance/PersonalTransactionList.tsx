@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Receipt } from 'lucide-react'
@@ -28,6 +29,10 @@ interface PersonalTransaction {
         type: string
     } | null
     mode: 'PERSONAL' | 'BUSINESS'
+    group?: {
+        id: string
+        name: string
+    } | null
 }
 
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
@@ -37,10 +42,9 @@ export function PersonalTransactionList() {
     const supabase = createClient()
     const [selectedTransaction, setSelectedTransaction] = useState<PersonalTransaction | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
-    const [editingTransaction, setEditingTransaction] = useState<PersonalTransaction | null>(null)
-    const [editOpen, setEditOpen] = useState(false)
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')
+    const router = useRouter()
 
     const { data: transactions, isLoading } = useQuery({
         queryKey: ['personal-transactions'],
@@ -50,7 +54,6 @@ export function PersonalTransactionList() {
                 .select(`
                     id,
                     amount,
-                    amount,
                     flow,
                     name,
                     note,
@@ -59,11 +62,12 @@ export function PersonalTransactionList() {
                     account_id,
                     mode,
                     category:categories(name, icon),
-                    account:accounts(name, type)
+                    account:accounts(name, type),
+                    group:groups(id, name)
                 `)
                 .eq('mode', 'PERSONAL')
                 .order('date', { ascending: false })
-                .limit(100) // Increased limit for client-side filtering
+                .limit(100)
 
             if (error) throw error
             return data as unknown as PersonalTransaction[]
@@ -196,6 +200,18 @@ export function PersonalTransactionList() {
                                                         {t.category.name}
                                                     </Badge>
                                                 )}
+                                                {t.group && (
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="text-[10px] px-1 py-0 h-5 bg-blue-100 text-blue-800 hover:bg-blue-200 cursor-pointer flex items-center gap-1"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            router.push(`/dashboard/groups/${t.group!.id}`)
+                                                        }}
+                                                    >
+                                                        👥 {t.group.name}
+                                                    </Badge>
+                                                )}
                                             </div>
                                             <p className="text-xs text-muted-foreground">
                                                 {formatTransactionDate(t.date)}
@@ -211,8 +227,6 @@ export function PersonalTransactionList() {
                     )}
                 </CardContent>
             </Card>
-
-
 
             <TransactionDetailsDrawer
                 transaction={selectedTransaction}
