@@ -76,6 +76,30 @@ export function PersonDetailsDrawer({ person, open, onOpenChange }: PersonDetail
                                     <p className="text-sm text-muted-foreground">{person.phone || 'N/A'}</p>
                                 </div>
                             </div>
+
+                            {person.linked_user_id ? (
+                                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 text-primary">
+                                    <div className="flex items-center gap-2 font-medium">
+                                        <span>✅</span>
+                                        <span>Connected Friend</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-2 p-3 rounded-lg border border-border">
+                                    <p className="text-sm font-medium">Not on LedgerFlow?</p>
+                                    <Button
+                                        variant="secondary"
+                                        className="w-full gap-2"
+                                        onClick={() => {
+                                            const link = `${window.location.origin}/invite/contact/${person.invite_token}`
+                                            navigator.clipboard.writeText(link)
+                                            toast.success('Invite link copied')
+                                        }}
+                                    >
+                                        Copy Invite Link
+                                    </Button>
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex gap-3">

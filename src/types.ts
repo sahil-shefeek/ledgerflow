@@ -8,6 +8,8 @@ export interface Contact {
     business_id: string | null
     image_url: string | null
     transaction_count: number
+    invite_token?: string
+    linked_user_id?: string | null
 }
 
 export interface Group {
