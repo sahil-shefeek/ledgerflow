@@ -107,10 +107,11 @@ function LoginContent() {
     const handleGoogleLogin = async () => {
         setLoadingState('GOOGLE')
         try {
+            const next = searchParams.get('next')
             const { error } = await supabase.auth.signInWithOAuth({
                 provider: 'google',
                 options: {
-                    redirectTo: `${getURL()}auth/callback`,
+                    redirectTo: `${getURL()}auth/callback${next ? `?next=${next}` : ''}`,
                 },
             })
             if (error) throw error
@@ -125,10 +126,11 @@ function LoginContent() {
         setLoadingState('EMAIL')
         setIdentifier(values.email)
         try {
+            const next = searchParams.get('next')
             const { error } = await supabase.auth.signInWithOtp({
                 email: values.email,
                 options: {
-                    emailRedirectTo: `${getURL()}auth/callback`,
+                    emailRedirectTo: `${getURL()}auth/callback${next ? `?next=${next}` : ''}`,
                 },
             })
             if (error) throw error
@@ -178,7 +180,8 @@ function LoginContent() {
             if (error) throw error
 
             toast.success('Logged in successfully!')
-            router.push('/dashboard')
+            const next = searchParams.get('next')
+            router.push(next || '/dashboard')
         } catch (error: any) {
             console.error('OTP verification error:', error)
             toast.error(error.message || 'Invalid OTP')
