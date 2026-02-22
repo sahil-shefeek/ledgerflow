@@ -188,7 +188,7 @@ export function PersonalTransactionList() {
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-lg">
-                                            {t.category?.icon || '💰'}
+                                            {t.category?.icon || (t.group ? '👥' : '💰')}
                                         </div>
                                         <div>
                                             <div className="flex items-center gap-2">

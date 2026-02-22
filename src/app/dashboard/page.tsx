@@ -17,6 +17,7 @@ import { BusinessSummary } from '@/components/ledger/BusinessSummary'
 import { PersonalTransactionList } from '@/components/finance/PersonalTransactionList'
 import { AccountsList } from '@/components/finance/AccountsList'
 import { RecurringTransactionsList } from '@/components/finance/RecurringTransactionsList'
+import { SharedBalancesCard } from '@/components/finance/SharedBalancesCard'
 import { Plus } from 'lucide-react'
 
 import { BusinessSwitcher } from '@/components/layout/BusinessSwitcher'
@@ -59,6 +60,7 @@ export default function DashboardPage() {
                         </div>
                         <div className="lg:col-span-3 space-y-4">
                             <AccountsList />
+                            <SharedBalancesCard />
                             <RecurringTransactionsList />
                             <BudgetsList />
                             <GoalsList />
