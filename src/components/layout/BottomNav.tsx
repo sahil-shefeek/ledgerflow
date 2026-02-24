@@ -26,8 +26,8 @@ export function BottomNav() {
             icon: LayoutDashboard,
         },
         {
-            label: 'People',
-            href: '/dashboard/people',
+            label: 'Friends',
+            href: '/dashboard/friends',
             icon: Users,
             showIn: 'personal' as const,
         },

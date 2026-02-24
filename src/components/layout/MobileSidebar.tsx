@@ -39,14 +39,14 @@ export function MobileSidebar() {
             icon: LayoutDashboard,
         },
         {
-            label: 'People',
-            href: '/dashboard/people',
+            label: 'Friends',
+            href: '/dashboard/friends',
             icon: Users,
             showIn: 'personal',
         },
         {
             label: 'Groups',
-            href: '/dashboard/people?tab=groups',
+            href: '/dashboard/friends?tab=groups',
             icon: Users,
             showIn: 'personal',
         },
@@ -97,11 +97,11 @@ export function MobileSidebar() {
 
                         let isActive = pathname === item.href
 
-                        // Special handling for People vs Groups
-                        if (item.href === '/dashboard/people') {
-                            isActive = pathname === '/dashboard/people' && !searchParams.has('tab')
-                        } else if (item.href === '/dashboard/people?tab=groups') {
-                            isActive = pathname === '/dashboard/people' && searchParams.get('tab') === 'groups'
+                        // Special handling for Friends vs Groups
+                        if (item.href === '/dashboard/friends') {
+                            isActive = pathname === '/dashboard/friends' && !searchParams.has('tab')
+                        } else if (item.href === '/dashboard/friends?tab=groups') {
+                            isActive = pathname === '/dashboard/friends' && searchParams.get('tab') === 'groups'
                         } else {
                             isActive = pathname === item.href
                         }

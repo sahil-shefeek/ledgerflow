@@ -41,9 +41,9 @@ export default function ContactInvitePage({ params }: PageProps) {
                 setStatus('SUCCESS')
                 setMessage(`Success! You are now friends with ${data.owner_name}. Redirecting...`)
 
-                // Redirect user specified suggestion to dashboarad/people
+                // Redirect user specified suggestion to dashboard/friends
                 setTimeout(() => {
-                    router.push('/dashboard/people')
+                    router.push('/dashboard/friends')
                 }, 2000)
 
             } catch (err: any) {

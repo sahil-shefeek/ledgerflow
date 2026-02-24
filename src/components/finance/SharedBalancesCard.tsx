@@ -45,7 +45,7 @@ export function SharedBalancesCard() {
         <Card className="flex flex-col h-full">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-base font-semibold">Shared Balances</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/people')}>
+                <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/friends')}>
                     <Users className="h-4 w-4 mr-2" />
                     Manage People
                 </Button>
@@ -94,7 +94,7 @@ export function SharedBalancesCard() {
                                         <div
                                             key={contact.id}
                                             className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
-                                            onClick={() => router.push(`/dashboard/people/${contact.id}`)}
+                                            onClick={() => router.push(`/dashboard/friends/${contact.id}`)}
                                         >
                                             <div className="flex items-center gap-3">
                                                 <Avatar className="h-9 w-9">

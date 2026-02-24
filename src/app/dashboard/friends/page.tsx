@@ -13,10 +13,10 @@ import { GroupsList } from '@/components/groups/GroupsList'
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
 type SortOption = 'LATEST' | 'MOST_ACTIVE'
 
-export default function PeoplePage() {
+export default function FriendsPage() {
     const router = useRouter()
     const searchParams = useSearchParams()
-    const activeTab = searchParams.get('tab') || 'people'
+    const activeTab = searchParams.get('tab') || 'friends'
 
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')
@@ -29,7 +29,7 @@ export default function PeoplePage() {
     const handleTabChange = (value: string) => {
         const params = new URLSearchParams(searchParams.toString())
         params.set('tab', value)
-        router.push(`/dashboard/people?${params.toString()}`)
+        router.push(`/dashboard/friends?${params.toString()}`)
     }
 
     return (
@@ -41,13 +41,13 @@ export default function PeoplePage() {
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
                 <div className="flex items-center justify-between gap-4 mb-4">
                     <TabsList className="grid w-full max-w-[200px] grid-cols-2">
-                        <TabsTrigger value="people">People</TabsTrigger>
+                        <TabsTrigger value="friends">Friends</TabsTrigger>
                         <TabsTrigger value="groups">Groups</TabsTrigger>
                     </TabsList>
                 </div>
 
                 <div className="flex-1 min-h-0 overflow-y-auto">
-                    <TabsContent value="people" className="h-full m-0 space-y-4">
+                    <TabsContent value="friends" className="h-full m-0 space-y-4">
                         {/* Filter Controls for People - only show in People tab */}
                         <div className="flex items-center justify-end gap-2 px-1">
                             <Select value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
@@ -77,12 +77,12 @@ export default function PeoplePage() {
                         <PeopleList
                             contacts={contacts}
                             isLoading={isLoading}
-                            title="Your People"
+                            title="Your Friends"
                             emptyMessage="No people found"
                             emptyDescription={timeFilter !== 'ALL' ? "Try changing the time filter." : "Add someone to start tracking."}
                             showAddButton={true}
                             onContactClick={(contact) => {
-                                router.push(`/dashboard/people/${contact.id}`)
+                                router.push(`/dashboard/friends/${contact.id}`)
                             }}
                         />
                     </TabsContent>

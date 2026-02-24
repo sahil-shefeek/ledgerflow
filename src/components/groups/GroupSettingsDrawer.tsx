@@ -125,7 +125,7 @@ export function GroupSettingsDrawer({ children, groupDetails }: GroupSettingsDra
 
             toast.success('Group deleted')
             queryClient.invalidateQueries({ queryKey: ['groups'] })
-            router.push('/dashboard/people?tab=groups')
+            router.push('/dashboard/friends?tab=groups')
         } catch (error) {
             console.error(error)
             toast.error('Failed to delete group')

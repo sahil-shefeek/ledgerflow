@@ -99,7 +99,7 @@ export function PeopleList({
         if (onContactClick) {
             onContactClick(contact)
         } else {
-            router.push(`/dashboard/people/${contact.id}`)
+            router.push(`/dashboard/friends/${contact.id}`)
         }
     }
 

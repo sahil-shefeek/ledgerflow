@@ -73,7 +73,7 @@ export default function PersonDetailsPage() {
     const handleDeletePerson = () => {
         deletePerson(contactId, {
             onSuccess: () => {
-                router.push('/dashboard/people')
+                router.push('/dashboard/friends')
             }
         })
     }
@@ -137,8 +137,8 @@ export default function PersonDetailsPage() {
                         </EmptyDescription>
                     </EmptyHeader>
                     <EmptyContent>
-                        <Button onClick={() => router.push('/dashboard/people')}>
-                            Go Back to People
+                        <Button onClick={() => router.push('/dashboard/friends')}>
+                            Go Back to Friends
                         </Button>
                     </EmptyContent>
                 </Empty>

@@ -10,7 +10,7 @@ const ROOT_ROUTES = [
     '/dashboard',
     '/dashboard/settings',
     '/dashboard/analytics',
-    '/dashboard/people',
+    '/dashboard/friends',
     '/dashboard/categories'
 ]
 
