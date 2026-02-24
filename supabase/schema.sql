@@ -30,6 +30,7 @@ create table if not exists public.profiles (
   avatar_url text, -- Added from migration_storage_profile.sql
   discoverable_by_phone boolean default true,
   discoverable_by_username boolean default true,
+  friend_invite_token uuid default gen_random_uuid() unique,
   created_at timestamptz default now()
 );
 
@@ -533,6 +534,63 @@ begin
   group by c.name, c.icon;
 end;
 $$;
+
+
+create or replace function accept_friend_invite(invite_token uuid)
+returns json
+security definer
+as $$
+declare
+    target_user record;
+    uid uuid;
+    existing_friendship record;
+begin
+    uid := auth.uid();
+    if uid is null then
+        raise exception 'Not authenticated';
+    end if;
+
+    -- Find the user who owns the invite token
+    select * into target_user from public.profiles where friend_invite_token = invite_token;
+
+    if not found then
+        raise exception 'Invalid or expired invite link';
+    end if;
+
+    -- Prevent self-invite
+    if target_user.id = uid then
+        raise exception 'You cannot become friends with yourself';
+    end if;
+
+    -- Check if friendship already exists
+    select * into existing_friendship from public.friendships 
+    where (user_id_1 = target_user.id and user_id_2 = uid)
+       or (user_id_1 = uid and user_id_2 = target_user.id);
+
+    if not found then
+        -- Insert friendship in deterministic order
+        if target_user.id < uid then
+            insert into public.friendships (user_id_1, user_id_2, status) 
+            values (target_user.id, uid, 'ACCEPTED');
+        else
+            insert into public.friendships (user_id_1, user_id_2, status) 
+            values (uid, target_user.id, 'ACCEPTED');
+        end if;
+    else
+        -- Update to ACCEPTED if it was PENDING
+        if existing_friendship.status = 'PENDING' then
+            update public.friendships 
+            set status = 'ACCEPTED' 
+            where id = existing_friendship.id;
+        end if;
+    end if;
+
+    return json_build_object(
+        'success', true,
+        'target_name', target_user.full_name
+    );
+end;
+$$ language plpgsql;
 
 
 -- ==========================================

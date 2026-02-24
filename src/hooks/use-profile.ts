@@ -14,6 +14,7 @@ export type Profile = {
     currency_symbol: string
     discoverable_by_phone: boolean
     discoverable_by_username: boolean
+    friend_invite_token?: string
 }
 
 export function useProfile() {

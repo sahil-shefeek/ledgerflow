@@ -8,6 +8,10 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Select, SelectItem, SelectTrigger, SelectValue, SelectContent } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { GroupsList } from '@/components/groups/GroupsList'
+import { useProfile } from '@/hooks/use-profile'
+import { toast } from 'sonner'
+import { UserPlus } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 // Define filter types matching the hook
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
@@ -21,10 +25,19 @@ export default function FriendsPage() {
     const [timeFilter, setTimeFilter] = useState<TimeFilter>('ALL')
     const [sortBy, setSortBy] = useState<SortOption>('LATEST')
 
+    const { profile } = useProfile()
+
     const { data: contacts, isLoading } = usePersonalPeople({
         timeFilter,
         sortBy
     })
+
+    const copyInviteLink = () => {
+        if (!profile?.friend_invite_token) return
+        const link = `${window.location.origin}/invite/friend/${profile.friend_invite_token}`
+        navigator.clipboard.writeText(link)
+        toast.success('Friend invite link copied to clipboard!')
+    }
 
     const handleTabChange = (value: string) => {
         const params = new URLSearchParams(searchParams.toString())
@@ -36,6 +49,16 @@ export default function FriendsPage() {
         <div className="flex flex-col h-full space-y-4">
             <div className="flex items-center justify-between px-1">
                 <h1 className="text-2xl font-bold tracking-tight">Friends & Groups</h1>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={copyInviteLink}
+                    className="gap-2"
+                    disabled={!profile?.friend_invite_token}
+                >
+                    <UserPlus className="w-4 h-4" />
+                    Invite Friend
+                </Button>
             </div>
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="flex-1 flex flex-col min-h-0">
