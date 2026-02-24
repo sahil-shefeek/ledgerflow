@@ -4,13 +4,15 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import * as z from 'zod'
-import { Loader2, Settings, Trash2, X } from 'lucide-react'
+import { Loader2, Settings, Trash2, X, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRouter } from 'next/navigation'
 import { AlertTriangle } from 'lucide-react'
 import { GroupDetails } from '@/hooks/groups/useGroupDetails'
+import { useFriendships } from '@/hooks/friends/useFriendships'
+import { useLinkGhostMember } from '@/hooks/groups/useGroupActions'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -44,6 +46,7 @@ import {
     AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 const formSchema = z.object({
     name: z.string().min(1, 'Group name is required'),
@@ -65,6 +68,9 @@ export function GroupSettingsDrawer({ children, groupDetails }: GroupSettingsDra
     const router = useRouter()
 
     const { group, members } = groupDetails
+
+    const { data: friends } = useFriendships()
+    const { mutate: linkGhostMember, isPending: isLinking } = useLinkGhostMember()
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
@@ -209,14 +215,68 @@ export function GroupSettingsDrawer({ children, groupDetails }: GroupSettingsDra
                                         {/* Since we don't have auth context here easily without hook, let's assume UI hides triggers if not admin
                                             Actually, let's just make it simple: Owner cannot remove themselves casually here. */}
                                         {member.user_id !== group.created_by && (
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-8 w-8 text-muted-foreground hover:text-destructive"
-                                                onClick={() => onRemoveMember(member.id)}
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </Button>
+                                            <div className="flex items-center gap-1">
+                                                {!member.user_id && friends && (
+                                                    <Popover>
+                                                        <PopoverTrigger asChild>
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="icon"
+                                                                className="h-8 w-8 text-muted-foreground hover:text-primary"
+                                                                title="Link to Friend"
+                                                                disabled={isLinking}
+                                                            >
+                                                                <Link2 className="h-4 w-4" />
+                                                            </Button>
+                                                        </PopoverTrigger>
+                                                        <PopoverContent align="end" className="w-[280px] p-0">
+                                                            <div className="p-3 border-b text-sm font-medium">
+                                                                Link to Friend
+                                                            </div>
+                                                            <div className="max-h-[200px] overflow-y-auto">
+                                                                {friends.filter(f => !members.some(m => m.user_id === f.profile.id)).length === 0 ? (
+                                                                    <div className="p-4 text-sm text-center text-muted-foreground">
+                                                                        No available friends to link.
+                                                                    </div>
+                                                                ) : (
+                                                                    friends
+                                                                        .filter(f => !members.some(m => m.user_id === f.profile.id))
+                                                                        .map(friend => (
+                                                                            <button
+                                                                                type="button"
+                                                                                key={friend.profile.id}
+                                                                                className="w-full flex items-center gap-3 p-3 hover:bg-accent text-left transition-colors"
+                                                                                onClick={() => {
+                                                                                    linkGhostMember({
+                                                                                        groupId: group.id,
+                                                                                        ghostMemberId: member.id,
+                                                                                        friendUserId: friend.profile.id
+                                                                                    })
+                                                                                }}
+                                                                                disabled={isLinking}
+                                                                            >
+                                                                                <Avatar className="h-8 w-8">
+                                                                                    <AvatarImage src={friend.profile.avatar_url || undefined} />
+                                                                                    <AvatarFallback>{(friend.profile.full_name || '?').slice(0, 2).toUpperCase()}</AvatarFallback>
+                                                                                </Avatar>
+                                                                                <span className="text-sm font-medium flex-1 truncate">{friend.profile.full_name}</span>
+                                                                            </button>
+                                                                        ))
+                                                                )}
+                                                            </div>
+                                                        </PopoverContent>
+                                                    </Popover>
+                                                )}
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                                                    onClick={() => onRemoveMember(member.id)}
+                                                    disabled={isLinking}
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
                                         )}
                                     </div>
                                 ))}
