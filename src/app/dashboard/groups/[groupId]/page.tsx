@@ -131,7 +131,7 @@ export default function GroupDetailsPage() {
     const { group, members } = groupDetails
 
     const copyInviteLink = () => {
-        const link = `${window.location.origin}/join/${group.id}`
+        const link = `${window.location.origin}/join/${group.invite_code}`
         navigator.clipboard.writeText(link)
         toast.success('Invite link copied to clipboard')
     }
