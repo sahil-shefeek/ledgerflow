@@ -12,10 +12,11 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Contact } from '@/types'
-import { Trash2, Edit, Phone } from 'lucide-react'
+import { Trash2, Edit, Phone, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
+import { useRemoveFriend } from '@/hooks/friends/useRemoveFriend'
 
 interface PersonDetailsDrawerProps {
     person: Contact | null
@@ -26,8 +27,18 @@ interface PersonDetailsDrawerProps {
 export function PersonDetailsDrawer({ person, open, onOpenChange }: PersonDetailsDrawerProps) {
     const supabase = createClient()
     const queryClient = useQueryClient()
+    const { mutate: removeFriend, isPending: isRemoving } = useRemoveFriend()
 
     if (!person) return null
+
+    const handleUnfriend = () => {
+        if (!person.linked_user_id) return
+        if (confirm('Are you sure you want to disconnect? Your transaction history will be kept as a personal record.')) {
+            removeFriend(person.linked_user_id, {
+                onSuccess: () => onOpenChange(false)
+            })
+        }
+    }
 
     const handleDelete = async () => {
         const { error } = await supabase
@@ -78,11 +89,20 @@ export function PersonDetailsDrawer({ person, open, onOpenChange }: PersonDetail
                             </div>
 
                             {person.linked_user_id ? (
-                                <div className="flex items-center gap-3 p-3 rounded-lg bg-primary/10 text-primary">
-                                    <div className="flex items-center gap-2 font-medium">
+                                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
+                                    <div className="flex items-center gap-2 font-medium text-primary">
                                         <span>✅</span>
                                         <span>Connected Friend</span>
                                     </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={handleUnfriend}
+                                        disabled={isRemoving}
+                                    >
+                                        {isRemoving ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Unfriend'}
+                                    </Button>
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-2 p-3 rounded-lg border border-border">
