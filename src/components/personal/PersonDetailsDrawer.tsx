@@ -17,6 +17,8 @@ import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
 import { useRemoveFriend } from '@/hooks/friends/useRemoveFriend'
+import { useFriendRequests } from '@/hooks/friends/useFriendRequests'
+import { useFriendRequestActions } from '@/hooks/friends/useFriendRequestActions'
 
 interface PersonDetailsDrawerProps {
     person: Contact | null
@@ -28,8 +30,12 @@ export function PersonDetailsDrawer({ person, open, onOpenChange }: PersonDetail
     const supabase = createClient()
     const queryClient = useQueryClient()
     const { mutate: removeFriend, isPending: isRemoving } = useRemoveFriend()
+    const { data: requests } = useFriendRequests()
+    const { rejectRequest } = useFriendRequestActions()
 
     if (!person) return null
+
+    const pendingRequest = requests?.find(req => req.type === 'OUTGOING' && req.profile.id === person.linked_user_id)
 
     const handleUnfriend = () => {
         if (!person.linked_user_id) return
@@ -88,7 +94,30 @@ export function PersonDetailsDrawer({ person, open, onOpenChange }: PersonDetail
                                 </div>
                             </div>
 
-                            {person.linked_user_id ? (
+                            {pendingRequest ? (
+                                <div className="flex items-center justify-between p-3 rounded-lg border border-amber-200 bg-amber-500/10">
+                                    <div className="flex items-center gap-2 font-medium text-amber-600 dark:text-amber-500">
+                                        <span>⏳</span>
+                                        <span>Pending Request</span>
+                                    </div>
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="text-amber-600 hover:text-amber-700 hover:bg-amber-500/20 dark:text-amber-500 dark:hover:text-amber-400"
+                                        onClick={() => {
+                                            rejectRequest.mutate(pendingRequest.id, {
+                                                onSuccess: () => {
+                                                    toast.success('Friend request cancelled')
+                                                    onOpenChange(false)
+                                                }
+                                            })
+                                        }}
+                                        disabled={rejectRequest.isPending}
+                                    >
+                                        {rejectRequest.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Cancel Request'}
+                                    </Button>
+                                </div>
+                            ) : person.linked_user_id ? (
                                 <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card">
                                     <div className="flex items-center gap-2 font-medium text-primary">
                                         <span>✅</span>

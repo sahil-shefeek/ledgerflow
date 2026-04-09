@@ -9,6 +9,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
 import { useQueryClient } from '@tanstack/react-query'
+import { useProfile } from '@/hooks/use-profile'
 
 import { BusinessTransactionDrawer } from '@/components/business/BusinessTransactionDrawer'
 import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
@@ -16,6 +17,7 @@ import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransac
 interface TransactionDetailsDrawerProps {
     transaction: {
         id: string
+        user_id?: string
         amount: number
         date: string
         flow: string
@@ -25,6 +27,7 @@ interface TransactionDetailsDrawerProps {
         account?: { name: string } | null
         mode: 'BUSINESS' | 'PERSONAL'
         group_id?: string | null
+        payer?: { full_name: string } | null
         splits?: TransactionSplit[]
     } | null
     open: boolean
@@ -37,6 +40,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
     const supabase = createClient()
     const queryClient = useQueryClient()
     const [editOpen, setEditOpen] = useState(false)
+    const { profile } = useProfile()
 
     const handleEdit = () => {
         setEditOpen(true)
@@ -44,6 +48,9 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
     }
 
     if (!transaction) return null
+
+    // Disable modifying shared transactions where user_id does not match the current user
+    const isCreator = !transaction.user_id || transaction.user_id === profile?.id
 
     const handleDelete = async () => {
         try {
@@ -160,25 +167,31 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
 
 
 
-                            <div className="flex gap-3">
-                                <Button
-                                    variant="outline"
-                                    className="flex-1"
-                                    onClick={handleEdit}
-                                >
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit
-                                </Button>
-                                <Button
-                                    variant="destructive"
-                                    className="flex-1"
-                                    onClick={handleDelete}
-                                    disabled={isDeleting}
-                                >
-                                    <Trash2 className="mr-2 h-4 w-4" />
-                                    Delete
-                                </Button>
-                            </div>
+                            {!isCreator ? (
+                                <div className="p-3 bg-muted/50 rounded-lg text-center text-sm text-muted-foreground">
+                                    Created by {transaction.payer?.full_name || 'your friend'}. Cannot be modified.
+                                </div>
+                            ) : (
+                                <div className="flex gap-3">
+                                    <Button
+                                        variant="outline"
+                                        className="flex-1"
+                                        onClick={handleEdit}
+                                    >
+                                        <Edit className="mr-2 h-4 w-4" />
+                                        Edit
+                                    </Button>
+                                    <Button
+                                        variant="destructive"
+                                        className="flex-1"
+                                        onClick={handleDelete}
+                                        disabled={isDeleting}
+                                    >
+                                        <Trash2 className="mr-2 h-4 w-4" />
+                                        Delete
+                                    </Button>
+                                </div>
+                            )}
 
                             {transaction.group_id && (
                                 <Button

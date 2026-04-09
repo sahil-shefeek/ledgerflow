@@ -23,13 +23,19 @@ export function useContactTransactions(contactId: string) {
         queryKey: ['transactions', 'contact', contactId],
         queryFn: async () => {
             const { data, error } = await supabase
-                .from('transactions')
-                .select('*')
-                .eq('contact_id', contactId)
+                .from('unified_contact_transactions')
+                .select('*, category:categories(name, icon), payer:profiles!payer_id(full_name, avatar_url)')
+                .eq('local_contact_id', contactId)
                 .order('date', { ascending: false })
 
             if (error) throw error
-            return data as Transaction[]
+
+            // Map the unified view columns to the expected Transaction format
+            return data.map((t: any) => ({
+                ...t,
+                contact_id: t.local_contact_id,
+                flow: t.local_flow
+            })) as Transaction[]
         },
         enabled: !!contactId,
     })

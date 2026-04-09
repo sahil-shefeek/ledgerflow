@@ -12,6 +12,7 @@ import { useProfile } from '@/hooks/use-profile'
 import { toast } from 'sonner'
 import { UserPlus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { PendingRequestsList } from '@/components/friends/PendingRequestsList'
 
 // Define filter types matching the hook
 type TimeFilter = 'ALL' | 'TODAY' | 'WEEK' | 'MONTH' | 'YEAR'
@@ -96,6 +97,8 @@ export default function FriendsPage() {
                                 </SelectContent>
                             </Select>
                         </div>
+
+                        <PendingRequestsList />
 
                         <PeopleList
                             contacts={contacts}
