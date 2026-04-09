@@ -19,7 +19,23 @@ export function usePersonalPeople(filters: PersonalPeopleFilters = {}) {
                 .select('*')
                 .is('business_id', null)
 
-            // Apply Sort
+            // Apply time filter at the DB level — do NOT fetch all rows then discard
+            if (filters.timeFilter && filters.timeFilter !== 'ALL') {
+                const now = new Date()
+                let startDate: Date
+
+                switch (filters.timeFilter) {
+                    case 'TODAY':   startDate = startOfDay(now);   break
+                    case 'WEEK':    startDate = startOfWeek(now);  break
+                    case 'MONTH':   startDate = startOfMonth(now); break
+                    case 'YEAR':    startDate = startOfYear(now);  break
+                    default:        startDate = startOfDay(now)
+                }
+
+                query = query.gte('last_transaction_at', startDate.toISOString())
+            }
+
+            // Apply sort at the DB level
             if (filters.sortBy === 'MOST_ACTIVE') {
                 query = query.order('transaction_count', { ascending: false })
             } else {
@@ -27,26 +43,9 @@ export function usePersonalPeople(filters: PersonalPeopleFilters = {}) {
             }
 
             const { data, error } = await query
-
             if (error) throw error
 
-            let result = data as Contact[]
-
-            if (filters.timeFilter && filters.timeFilter !== 'ALL') {
-                const now = new Date()
-                let startDate: Date
-
-                switch (filters.timeFilter) {
-                    case 'TODAY': startDate = startOfDay(now); break;
-                    case 'WEEK': startDate = startOfWeek(now); break;
-                    case 'MONTH': startDate = startOfMonth(now); break;
-                    case 'YEAR': startDate = startOfYear(now); break;
-                }
-
-                result = result.filter(c => c.last_transaction_at && new Date(c.last_transaction_at) >= startDate)
-            }
-
-            return result
+            return data as Contact[]
         }
     })
 }

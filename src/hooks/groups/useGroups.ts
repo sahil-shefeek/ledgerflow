@@ -11,31 +11,22 @@ export function useGroups() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('User not authenticated')
 
-            // 1. Get group IDs first
-            const { data: memberData, error: memberError } = await supabase
-                .from('group_members')
-                .select('group_id')
-                .eq('user_id', user.id)
-
-            if (memberError) throw memberError
-
-            // If no groups, return empty array immediately to avoid "in ()" syntax error
-            // and saving a round trip.
-            if (!memberData || memberData.length === 0) {
-                return []
-            }
-
-            const groupIds = memberData.map(m => m.group_id)
-
-            // 2. Fetch groups
+            // Single query via PostgREST implicit join — requires FK from
+            // group_members.group_id → groups.id (standard Supabase schema).
             const { data, error } = await supabase
-                .from('groups')
-                .select('*')
-                .in('id', groupIds)
-                .order('created_at', { ascending: false })
+                .from('group_members')
+                .select('groups(*)')
+                .eq('user_id', user.id)
+                .order('created_at', { referencedTable: 'groups', ascending: false })
 
             if (error) throw error
-            return data as Group[]
+
+            // Unwrap the nested group objects and filter out any nulls
+            const groups = data
+                .map((row: any) => row.groups) // eslint-disable-line @typescript-eslint/no-explicit-any
+                .filter(Boolean) as Group[]
+
+            return groups
         }
     })
 }

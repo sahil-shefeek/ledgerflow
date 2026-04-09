@@ -11,11 +11,24 @@ export function useUpdateContact() {
 
     return useMutation({
         mutationFn: async (params: UpdateContactParams) => {
-            const { id, ...updates } = params
+            const {
+                id,
+                // Strip ALL trigger-managed and system fields — these must never be
+                // written from the client. They are owned by Postgres triggers.
+                net_balance: _net_balance,
+                last_transaction_at: _last_transaction_at,
+                transaction_count: _transaction_count,
+                // Also strip relational/computed fields that don't exist as DB columns
+                ...safeUpdates
+            } = params
+
+            if (Object.keys(safeUpdates).length === 0) {
+                throw new Error('No updatable fields provided.')
+            }
 
             const { data, error } = await supabase
                 .from('contacts')
-                .update(updates)
+                .update(safeUpdates)
                 .eq('id', id)
                 .select()
                 .single()
