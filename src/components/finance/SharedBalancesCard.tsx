@@ -42,7 +42,7 @@ export function SharedBalancesCard() {
     }, [contacts])
 
     return (
-        <Card className="flex flex-col h-full">
+        <Card className="flex flex-col">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-base font-semibold">Shared Balances</CardTitle>
                 <Button variant="ghost" size="sm" onClick={() => router.push('/dashboard/friends')}>
