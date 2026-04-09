@@ -8,6 +8,10 @@ export function useDeleteContact() {
 
     return useMutation({
         mutationFn: async (id: string) => {
+            // Auth gate — RLS enforces ownership, this prevents unauthenticated client calls
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('User not authenticated')
+
             const { error } = await supabase
                 .from('contacts')
                 .delete()

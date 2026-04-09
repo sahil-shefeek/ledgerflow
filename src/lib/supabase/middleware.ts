@@ -41,7 +41,9 @@ export async function updateSession(request: NextRequest) {
         path.startsWith('/login') ||
         path.startsWith('/auth') ||
         path.startsWith('/privacy') ||
-        path.startsWith('/terms')
+        path.startsWith('/terms') ||
+        path.startsWith('/invite/') ||
+        path.startsWith('/join/')
 
     if (!user && !isPublicPath) {
         // no user, potentially respond by redirecting the user to the login page

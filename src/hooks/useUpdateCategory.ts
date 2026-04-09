@@ -13,6 +13,10 @@ export function useUpdateCategory() {
 
     return useMutation({
         mutationFn: async ({ id, budget_limit }: UpdateCategoryParams) => {
+            // Auth gate — RLS enforces ownership, this prevents unauthenticated client calls
+            const { data: { user } } = await supabase.auth.getUser()
+            if (!user) throw new Error('User not authenticated')
+
             const { data, error } = await supabase
                 .from('categories')
                 .update({ budget_limit })
