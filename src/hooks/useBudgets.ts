@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { addPaise } from '@/lib/currency'
 
 export interface BudgetCategory {
     id: string
@@ -45,7 +46,7 @@ export function useBudgets() {
             const spendingMap = new Map<string, number>()
             transactions?.forEach(t => {
                 const current = spendingMap.get(t.category_id) || 0
-                spendingMap.set(t.category_id, current + t.amount)
+                spendingMap.set(t.category_id, addPaise(current, t.amount))
             })
 
             // 4. Combine

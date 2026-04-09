@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { rupeesToPaise } from '@/lib/currency'
 import { toast } from 'sonner'
 
 interface ContributeGoalParams {
@@ -13,22 +14,14 @@ export function useContributeGoal() {
 
     return useMutation({
         mutationFn: async ({ id, amount }: ContributeGoalParams) => {
-            // 1. Get current amount
-            const { data: goal, error: fetchError } = await supabase
-                .from('goals')
-                .select('current_amount')
-                .eq('id', id)
-                .single()
+            // Convert amount from rupees (user input) to integer paise for DB storage
+            const amountInPaise = rupeesToPaise(amount)
 
-            if (fetchError) throw fetchError
-
-            // 2. Update amount
-            const { data, error } = await supabase
-                .from('goals')
-                .update({ current_amount: goal.current_amount + amount })
-                .eq('id', id)
-                .select()
-                .single()
+            // Single atomic RPC call — no read-modify-write, no race condition
+            const { data, error } = await supabase.rpc('contribute_to_goal', {
+                p_goal_id: id,
+                p_amount: amountInPaise,
+            })
 
             if (error) throw error
             return data

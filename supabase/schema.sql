@@ -409,53 +409,61 @@ $$ language plpgsql security definer;
 
 
 -- 5.4 Logic Triggers (Balances)
-create or replace function update_contact_balance()
+create or replace function public.update_contact_balance()
 returns trigger as $$
+declare
+  v_old_delta numeric;
+  v_new_delta numeric;
 begin
-  -- Logic for INSERT
-  if (tg_op = 'INSERT' and new.contact_id is not null) then
-    update contacts
-    set 
-      net_balance = net_balance + (case when new.flow = 'OUT' then new.amount else -new.amount end),
-      transaction_count = transaction_count + 1,
-      last_transaction_at = new.date
-    where id = new.contact_id;
-  end if;
-
-  -- Logic for UPDATE
-  if (tg_op = 'UPDATE') then
-    -- Reverse OLD impact
-    if (old.contact_id is not null) then
-      update contacts
-      set 
-        net_balance = net_balance - (case when old.flow = 'OUT' then old.amount else -old.amount end),
-        transaction_count = greatest(0, transaction_count - 1)
-      where id = old.contact_id;
-    end if;
-
-    -- Apply NEW impact
-    if (new.contact_id is not null) then
-      update contacts
-      set 
+  if (tg_op = 'INSERT') then
+    -- Only act on BUSINESS mode transactions linked to a contact
+    if new.mode = 'BUSINESS' and new.contact_id is not null then
+      update public.contacts
+      set
         net_balance = net_balance + (case when new.flow = 'OUT' then new.amount else -new.amount end),
-        transaction_count = transaction_count + 1,
         last_transaction_at = new.date
-      where id = new.contact_id;
+      where id = new.contact_id and user_id = new.user_id;
     end if;
+    return new;
   end if;
 
-  -- Logic for DELETE
-  if (tg_op = 'DELETE' and old.contact_id is not null) then
-    update contacts
-    set 
-      net_balance = net_balance - (case when old.flow = 'OUT' then old.amount else -old.amount end),
-      transaction_count = greatest(0, transaction_count - 1)
-    where id = old.contact_id;
+  if (tg_op = 'DELETE') then
+    if old.mode = 'BUSINESS' and old.contact_id is not null then
+      update public.contacts
+      set net_balance = net_balance - (case when old.flow = 'OUT' then old.amount else -old.amount end)
+      where id = old.contact_id and user_id = old.user_id;
+    end if;
+    return old;
   end if;
-  
+
+  if (tg_op = 'UPDATE') then
+    -- Reverse the OLD transaction's effect, then apply the NEW transaction's effect.
+    -- This is correct even if amount, flow, or contact_id changed.
+
+    -- Reverse OLD effect
+    if old.mode = 'BUSINESS' and old.contact_id is not null then
+      v_old_delta := case when old.flow = 'OUT' then old.amount else -old.amount end;
+      update public.contacts
+      set net_balance = net_balance - v_old_delta
+      where id = old.contact_id and user_id = old.user_id;
+    end if;
+
+    -- Apply NEW effect
+    if new.mode = 'BUSINESS' and new.contact_id is not null then
+      v_new_delta := case when new.flow = 'OUT' then new.amount else -new.amount end;
+      update public.contacts
+      set
+        net_balance = net_balance + v_new_delta,
+        last_transaction_at = new.date
+      where id = new.contact_id and user_id = new.user_id;
+    end if;
+
+    return new;
+  end if;
+
   return null;
 end;
-$$ language plpgsql;
+$$ language plpgsql security definer;
 
 create or replace function update_account_balance()
 returns trigger as $$
@@ -633,6 +641,111 @@ BEGIN
        OR (user_id = friend_id AND linked_user_id = uid);
 END;
 $$ LANGUAGE plpgsql;
+
+
+-- 5.6 Atomic Transaction RPC
+create or replace function public.add_transaction_with_splits(
+  p_user_id         uuid,
+  p_business_id     uuid,
+  p_amount          numeric,
+  p_flow            text,
+  p_mode            text,
+  p_name            text,
+  p_note            text,
+  p_date            timestamptz,
+  p_due_date        timestamptz,
+  p_contact_id      uuid,
+  p_category_id     uuid,
+  p_account_id      uuid,
+  p_group_id        uuid,
+  p_payer_id        uuid,
+  p_payer_group_member_id uuid,
+  p_split_type      text,
+  p_splits          jsonb
+)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_transaction_id  uuid;
+  v_split           jsonb;
+begin
+  if auth.uid() != p_user_id then
+    raise exception 'Unauthorized';
+  end if;
+
+  insert into public.transactions (
+    user_id, business_id, amount, flow, mode, name, note,
+    date, due_date, contact_id, category_id, account_id,
+    group_id, payer_id, payer_group_member_id, split_type
+  )
+  values (
+    p_user_id, p_business_id, p_amount, p_flow, p_mode, p_name, p_note,
+    p_date, p_due_date, p_contact_id, p_category_id, p_account_id,
+    p_group_id, p_payer_id, p_payer_group_member_id, p_split_type
+  )
+  returning id into v_transaction_id;
+
+  if p_splits is not null and jsonb_array_length(p_splits) > 0 then
+    for v_split in select * from jsonb_array_elements(p_splits)
+    loop
+      insert into public.transaction_splits (
+        transaction_id, user_id, group_member_id,
+        amount, percentage, is_settled, member_name_snapshot
+      )
+      values (
+        v_transaction_id,
+        (v_split->>'user_id')::uuid,
+        (v_split->>'group_member_id')::uuid,
+        (v_split->>'amount')::numeric,
+        (v_split->>'percentage')::numeric,
+        coalesce((v_split->>'is_settled')::boolean, false),
+        v_split->>'member_name_snapshot'
+      );
+    end loop;
+  end if;
+
+  return jsonb_build_object('id', v_transaction_id);
+exception
+  when others then
+    raise;
+end;
+$$;
+
+revoke all on function public.add_transaction_with_splits from public;
+grant execute on function public.add_transaction_with_splits to authenticated;
+
+
+-- 5.7 Atomic Goal Contribution RPC
+create or replace function public.contribute_to_goal(
+  p_goal_id uuid,
+  p_amount  numeric
+)
+returns jsonb
+language plpgsql
+security definer
+as $$
+declare
+  v_updated jsonb;
+begin
+  if not exists (
+    select 1 from public.goals where id = p_goal_id and user_id = auth.uid()
+  ) then
+    raise exception 'Goal not found or unauthorized';
+  end if;
+
+  update public.goals
+  set current_amount = current_amount + p_amount
+  where id = p_goal_id and user_id = auth.uid()
+  returning jsonb_build_object('id', id, 'current_amount', current_amount) into v_updated;
+
+  return v_updated;
+end;
+$$;
+
+revoke all on function public.contribute_to_goal from public;
+grant execute on function public.contribute_to_goal to authenticated;
 
 
 -- ==========================================

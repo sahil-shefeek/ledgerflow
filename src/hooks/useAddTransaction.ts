@@ -1,7 +1,8 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/useAppStore'
-import { Contact, TransactionSplit } from '@/types'
+import { Contact, Paise, TransactionSplit } from '@/types'
+import { rupeesToPaise } from '@/lib/currency'
 import { toast } from 'sonner'
 
 interface AddTransactionParams {
@@ -36,58 +37,44 @@ export function useAddTransaction() {
                 throw new Error('No business selected')
             }
 
-            // 1. Insert Transaction
-            const { data: transactionData, error: transactionError } = await supabase
-                .from('transactions')
-                .insert({
-                    amount: newTransaction.amount,
-                    flow: newTransaction.flow,
-                    mode: newTransaction.mode,
-                    contact_id: newTransaction.contact_id,
-                    category_id: newTransaction.category_id,
-                    account_id: newTransaction.account_id,
-                    group_id: newTransaction.group_id,
-                    payer_id: newTransaction.payer_id || user.id, // Default to current user if not specified
-                    payer_group_member_id: newTransaction.payer_group_member_id || null,
-                    split_type: newTransaction.split_type || 'EQUALLY',
-                    name: newTransaction.name,
-                    note: newTransaction.note,
+            // Convert amount from rupees (user input) to integer paise for DB storage
+            const amountInPaise = rupeesToPaise(newTransaction.amount)
 
-                    user_id: user.id,
-                    business_id: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
-                    date: newTransaction.date.toISOString(),
-                    due_date: newTransaction.due_date?.toISOString(),
-                })
-                .select()
-                .single()
-
-            if (transactionError) throw transactionError
-
-            // 2. Insert Splits (if any)
-            if (newTransaction.splits && newTransaction.splits.length > 0) {
-                const splitsToInsert = newTransaction.splits.map(split => ({
-                    transaction_id: transactionData.id,
-                    user_id: split.user_id, // Nullable
-                    group_member_id: split.group_member_id, // Nullable
-                    amount: split.amount,
-                    percentage: split.percentage,
+            // Prepare splits with amounts converted to paise
+            const splitsPayload = newTransaction.splits && newTransaction.splits.length > 0
+                ? newTransaction.splits.map(split => ({
+                    user_id: split.user_id || null,
+                    group_member_id: split.group_member_id || null,
+                    amount: split.amount != null ? rupeesToPaise(split.amount as number) : 0,
+                    percentage: split.percentage ?? null,
                     is_settled: split.is_settled || false,
-                    member_name_snapshot: split.member_name_snapshot
+                    member_name_snapshot: split.member_name_snapshot || null,
                 }))
+                : null
 
-                const { error: splitsError } = await supabase
-                    .from('transaction_splits')
-                    .insert(splitsToInsert)
+            // Single atomic RPC call — transaction + splits are inserted in one DB transaction
+            const { data, error } = await supabase.rpc('add_transaction_with_splits', {
+                p_user_id: user.id,
+                p_business_id: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
+                p_amount: amountInPaise,
+                p_flow: newTransaction.flow,
+                p_mode: newTransaction.mode,
+                p_name: newTransaction.name,
+                p_note: newTransaction.note || null,
+                p_date: newTransaction.date.toISOString(),
+                p_due_date: newTransaction.due_date?.toISOString() || null,
+                p_contact_id: newTransaction.contact_id || null,
+                p_category_id: newTransaction.category_id || null,
+                p_account_id: newTransaction.account_id || null,
+                p_group_id: newTransaction.group_id || null,
+                p_payer_id: newTransaction.payer_id || user.id,
+                p_payer_group_member_id: newTransaction.payer_group_member_id || null,
+                p_split_type: newTransaction.split_type || 'EQUALLY',
+                p_splits: splitsPayload,
+            })
 
-                if (splitsError) {
-                    // Ideally, rollback transaction here.
-                    // For now, throw error.
-                    console.error('Failed to insert splits:', splitsError)
-                    throw new Error('Transaction created but failed to save splits. Please delete and try again.')
-                }
-            }
-
-            return transactionData
+            if (error) throw error
+            return data
         },
         onMutate: async (newTransaction) => {
             // Cancel any outgoing refetches
@@ -128,7 +115,7 @@ export function useAddTransaction() {
                             const amountChange = newTransaction.flow === 'OUT' ? newTransaction.amount : -newTransaction.amount
                             return {
                                 ...contact,
-                                net_balance: contact.net_balance + amountChange,
+                                net_balance: (contact.net_balance + amountChange) as Paise,
                                 last_transaction_at: newTransaction.date.toISOString(),
                             }
                         }

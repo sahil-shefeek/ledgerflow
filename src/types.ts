@@ -1,9 +1,13 @@
+/** Represents a monetary value stored as integer paise (100 paise = ₹1). Never do raw arithmetic on this — use src/lib/currency.ts helpers. */
+export type Paise = number & { readonly __brand: 'Paise' }
+
 export interface Contact {
     id: string
     name: string
     phone: string | null
     type: 'CUSTOMER' | 'SUPPLIER' | 'OTHER'
-    net_balance: number
+    /** Stored as integer paise (100 paise = ₹1). Use currency.ts helpers for arithmetic. */
+    net_balance: Paise
     last_transaction_at: string
     business_id: string | null
     image_url: string | null
@@ -43,7 +47,8 @@ export interface TransactionSplit {
     transaction_id: string
     user_id: string | null
     group_member_id: string | null
-    amount: number
+    /** Stored as integer paise (100 paise = ₹1). Use currency.ts helpers for arithmetic. */
+    amount: Paise
     percentage?: number
     is_settled: boolean
     member_name_snapshot?: string
@@ -62,7 +67,8 @@ export interface Notification {
 
 export interface Transaction {
     id: string
-    amount: number
+    /** Stored as integer paise (100 paise = ₹1). Use currency.ts helpers for arithmetic. */
+    amount: Paise
     flow: 'IN' | 'OUT'
     mode: 'BUSINESS' | 'PERSONAL'
     date: string

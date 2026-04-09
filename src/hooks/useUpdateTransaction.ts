@@ -1,5 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { rupeesToPaise } from '@/lib/currency'
 import { toast } from 'sonner'
 
 interface UpdateTransactionParams {
@@ -25,10 +26,13 @@ export function useUpdateTransaction() {
             const { data: { user } } = await supabase.auth.getUser()
             if (!user) throw new Error('User not authenticated')
 
+            // Convert amount from rupees (user input) to integer paise for DB storage
+            const amountInPaise = rupeesToPaise(updatedTransaction.amount)
+
             const { data, error } = await supabase
                 .from('transactions')
                 .update({
-                    amount: updatedTransaction.amount,
+                    amount: amountInPaise,
                     flow: updatedTransaction.flow,
                     mode: updatedTransaction.mode,
                     contact_id: updatedTransaction.contact_id,
@@ -53,6 +57,9 @@ export function useUpdateTransaction() {
             queryClient.invalidateQueries({ queryKey: ['contacts'] })
             queryClient.invalidateQueries({ queryKey: ['personal-people'] })
             queryClient.invalidateQueries({ queryKey: ['accounts'] })
+            queryClient.invalidateQueries({ queryKey: ['analytics'] })
+            queryClient.invalidateQueries({ queryKey: ['group-balances'] })
+            queryClient.invalidateQueries({ queryKey: ['budgets'] })
         },
         onError: (error) => {
             toast.error(`Failed to update: ${error.message}`)
