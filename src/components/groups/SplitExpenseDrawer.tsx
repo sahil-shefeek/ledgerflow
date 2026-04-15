@@ -14,6 +14,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { cn } from '@/lib/utils'
 import { useAccounts } from '@/hooks/useAccounts'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { formatCurrency, rupeesToPaise } from '@/lib/currency'
 
 
 interface SplitExpenseDrawerProps {
@@ -99,12 +100,11 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
         const splitsPayload = allocations.map(a => {
             const member = members.find(m => m.id === a.memberId)
             return {
-                transaction_id: 'temp', // Ignored/Generated
-                user_id: member?.user_id || undefined, // undefined vs null? schema allows null.
-                group_member_id: member?.id, // Important for ghosts
+                user_id: member?.user_id || undefined,
+                group_member_id: member?.id,
                 amount: a.amountOwed,
                 percentage: a.percent,
-                is_settled: member?.id === payerId, // Payer is settled
+                is_settled: member?.id === payerId,
                 member_name_snapshot: member ? getMemberName(member.id) : 'Unknown'
             }
         })
@@ -269,7 +269,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                                     <div className="font-medium text-sm">{getMemberName(member.id)}</div>
                                                 </div>
                                                 <div className="text-sm font-medium">
-                                                    ₹{allocation?.amountOwed.toFixed(2)}
+                                                    {allocation ? formatCurrency(rupeesToPaise(allocation.amountOwed)) : '₹0.00'}
                                                 </div>
                                             </div>
                                         )
@@ -305,7 +305,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                         )
                                     })}
                                     <div className={cn("text-center text-sm font-medium mt-4", isValid ? "text-green-600" : "text-red-500")}>
-                                        {isValid ? "Amounts match total" : `Remaining: ₹${remainder.toFixed(2)}`}
+                                        {isValid ? "Amounts match total" : `Remaining: ${formatCurrency(rupeesToPaise(remainder))}`}
                                     </div>
                                 </TabsContent>
 

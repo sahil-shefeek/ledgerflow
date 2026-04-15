@@ -8,6 +8,7 @@ import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import { Briefcase, LogOut, Menu, Wallet, Settings, Users, LayoutDashboard, PieChart, List } from 'lucide-react'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
+import { toast } from 'sonner'
 
 import { useProfile } from '@/hooks/use-profile'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -22,8 +23,12 @@ export function MobileSidebar() {
     const { profile } = useProfile()
 
     const handleLogout = async () => {
-        await supabase.auth.signOut()
-        window.location.href = '/login'
+        try {
+            await supabase.auth.signOut()
+            window.location.href = '/login'
+        } catch {
+            toast.error('Failed to sign out. Please try again.')
+        }
     }
 
     const handleModeSwitch = () => {

@@ -102,4 +102,21 @@ describe('useContributeGoal', () => {
 
     await expect(hook.mutationFn({ id: 'bad-id', amount: 100 })).rejects.toEqual(rpcError)
   })
+
+  it('shows specific toast "Amount exceeds the remaining goal balance." when RPC throws the overcontribution error message', () => {
+    const hook = useContributeGoal() as unknown as AnyHook
+    const error = { message: 'Contribution would exceed goal target' }
+    hook.onError(error)
+
+    expect(toast.error).toHaveBeenCalledWith('Amount exceeds the remaining goal balance.')
+    expect(toast.error).not.toHaveBeenCalledWith(expect.stringContaining('Failed to update goal'))
+  })
+
+  it('shows generic toast.error for all other RPC errors', () => {
+    const hook = useContributeGoal() as unknown as AnyHook
+    const error = { message: 'Some unexpected database error' }
+    hook.onError(error)
+
+    expect(toast.error).toHaveBeenCalledWith('Failed to update goal: Some unexpected database error')
+  })
 })

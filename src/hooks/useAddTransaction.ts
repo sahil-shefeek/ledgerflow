@@ -1,9 +1,19 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { useAppStore } from '@/store/useAppStore'
-import { Contact, Paise, TransactionSplit } from '@/types'
+import { Contact, Paise } from '@/types'
 import { rupeesToPaise, addPaise } from '@/lib/currency'
 import { toast } from 'sonner'
+
+/** Input shape for a single split — amounts are raw rupee values from the UI. */
+interface SplitInput {
+    user_id?: string | null
+    group_member_id?: string | null
+    amount?: number
+    percentage?: number | null
+    is_settled?: boolean
+    member_name_snapshot?: string | null
+}
 
 interface AddTransactionParams {
     amount: number
@@ -20,7 +30,7 @@ interface AddTransactionParams {
     due_date?: Date
     name: string
     note?: string
-    splits?: Partial<TransactionSplit>[]
+    splits?: SplitInput[]
 }
 
 export function useAddTransaction() {
@@ -45,7 +55,7 @@ export function useAddTransaction() {
                 ? newTransaction.splits.map(split => ({
                     user_id: split.user_id || null,
                     group_member_id: split.group_member_id || null,
-                    amount: split.amount != null ? rupeesToPaise(split.amount as number) : 0,
+                    amount: split.amount != null ? rupeesToPaise(split.amount) : 0,
                     percentage: split.percentage ?? null,
                     is_settled: split.is_settled || false,
                     member_name_snapshot: split.member_name_snapshot || null,

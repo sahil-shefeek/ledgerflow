@@ -19,6 +19,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 
 import { useProfile } from '@/hooks/use-profile'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -32,8 +33,12 @@ export function Sidebar() {
     const { profile } = useProfile()
 
     const handleLogout = async () => {
-        await supabase.auth.signOut()
-        window.location.href = '/login'
+        try {
+            await supabase.auth.signOut()
+            window.location.href = '/login'
+        } catch {
+            toast.error('Failed to sign out. Please try again.')
+        }
     }
 
     const navItems = [

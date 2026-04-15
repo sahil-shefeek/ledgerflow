@@ -108,7 +108,10 @@ export function GroupSettingsDrawer({ children, groupDetails }: GroupSettingsDra
             .select('*', { count: 'exact', head: true })
             .eq('group_id', group.id)
 
-        if (!error) {
+        if (error) {
+            console.error('Failed to check transactions:', error)
+            toast.error('Could not check group transactions')
+        } else {
             setTransactionCount(count)
         }
     }

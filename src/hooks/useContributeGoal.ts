@@ -31,7 +31,11 @@ export function useContributeGoal() {
             queryClient.invalidateQueries({ queryKey: ['goals'] })
         },
         onError: (error) => {
-            toast.error(`Failed to update goal: ${error.message}`)
+            if (error.message?.includes('Contribution would exceed goal target')) {
+                toast.error('Amount exceeds the remaining goal balance.')
+            } else {
+                toast.error(`Failed to update goal: ${error.message}`)
+            }
         },
     })
 }
