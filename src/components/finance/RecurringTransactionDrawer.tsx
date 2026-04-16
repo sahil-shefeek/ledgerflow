@@ -91,7 +91,7 @@ export function RecurringTransactionDrawer({
             next_run_date: values.start_date.toISOString(),
         }
 
-        addRecurring(data, {
+        addRecurring({ ...data, start_date: data.start_date.toISOString() }, {
             onSuccess: () => {
                 setOpen(false)
                 form.reset()
