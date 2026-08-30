@@ -71,8 +71,11 @@ export const profiles = pgTable("profiles", {
   discoverableByPhone: boolean("discoverable_by_phone").default(true),
   discoverableByUsername: boolean("discoverable_by_username").default(true),
   friendInviteToken: uuid("friend_invite_token").defaultRandom().unique(),
-  onboardingStep: integer("onboarding_step").default(1),
-  onboardingCompleted: boolean("onboarding_completed").default(false),
+  globalOnboardingStatus: text("global_onboarding_status").default("PENDING"), // for profile & mode selection
+  personalSetupStatus: text("personal_setup_status").default("PENDING"),
+  personalSetupStep: text("personal_setup_step").default("bank-account"),
+  businessSetupStatus: text("business_setup_status").default("PENDING"),
+  businessSetupStep: text("business_setup_step").default("business-name"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow(),
 });
 

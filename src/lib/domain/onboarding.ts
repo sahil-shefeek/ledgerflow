@@ -23,20 +23,7 @@ export async function initializeNewUser(user: { id: string; name?: string | null
       })
       .onConflictDoNothing();
 
-    // 3. Default Business
-    await tx.insert(schema.businesses).values({
-      userId: user.id,
-      name: "My Business",
-    });
-
-    // 4. Default Account
-    await tx.insert(schema.accounts).values({
-      userId: user.id,
-      name: "Cash",
-      type: "CASH",
-      balance: "0",
-      isDefault: true,
-    });
+    // Default Business and Account seeding removed in favor of JIT Onboarding.
 
     // 5. Default Categories
     const defaultCategories = [
@@ -54,5 +41,5 @@ export async function initializeNewUser(user: { id: string; name?: string | null
       }))
     );
   });
-  console.log(`[AUDIT] Seeded default data for new user: ${user.id}`);
+  console.log(`[AUDIT] Created profile and settings for new user (JIT Onboarding pending): ${user.id}`);
 }

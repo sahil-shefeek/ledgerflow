@@ -11,6 +11,8 @@ import { db } from '@/db'
 import { profiles } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 
+import { JitOnboardingGuard } from '@/components/onboarding/JitOnboardingGuard'
+
 export default async function DashboardLayout({
     children,
 }: {
@@ -18,11 +20,15 @@ export default async function DashboardLayout({
 }) {
     const h = await headers();
     const session = await auth.api.getSession({ headers: h });
+    let profileData = null;
     
     if (session?.user) {
         const [profile] = await db.select().from(profiles).where(eq(profiles.id, session.user.id));
-        if (profile && !profile.onboardingCompleted) {
-            redirect('/onboarding');
+        if (profile) {
+            profileData = profile;
+            if (profile.globalOnboardingStatus === 'PENDING') {
+                redirect('/onboarding');
+            }
         }
     }
 
@@ -38,6 +44,7 @@ export default async function DashboardLayout({
                 <main className="flex-1 p-4 sm:px-6 sm:py-0 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-4 pl-[calc(1rem+env(safe-area-inset-left,0px))] pr-[calc(1rem+env(safe-area-inset-right,0px))]">
                     <UnverifiedEmailBanner />
                     <RealtimeProvider>
+                        {profileData && <JitOnboardingGuard profile={profileData} />}
                         {children}
                     </RealtimeProvider>
                 </main>
