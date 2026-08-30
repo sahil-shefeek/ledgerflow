@@ -20,10 +20,7 @@ export async function getOnboardingStatus() {
   const result = await db
     .select({
       globalOnboardingStatus: profiles.globalOnboardingStatus,
-      personalSetupStatus: profiles.personalSetupStatus,
-      businessSetupStatus: profiles.businessSetupStatus,
-      personalSetupStep: profiles.personalSetupStep,
-      businessSetupStep: profiles.businessSetupStep,
+      modeSetupState: profiles.modeSetupState,
       username: profiles.username,
       fullName: profiles.fullName,
     })
@@ -69,18 +66,24 @@ export async function completeGlobalOnboarding(data: {
 export async function completeModeSetup(mode: "personal" | "business", step: string, isCompleted: boolean) {
   const user = await getAuthenticatedUser();
   
-  const updateData: any = {};
-  if (mode === "personal") {
-    updateData.personalSetupStep = step;
-    if (isCompleted) updateData.personalSetupStatus = "COMPLETED";
-  } else {
-    updateData.businessSetupStep = step;
-    if (isCompleted) updateData.businessSetupStatus = "COMPLETED";
-  }
+  const profileRecord = await db.select({ modeSetupState: profiles.modeSetupState }).from(profiles).where(eq(profiles.id, user.id)).limit(1);
+  const currentState = profileRecord[0]?.modeSetupState || {
+    personal: { status: "PENDING", step: "bank-account" },
+    business: { status: "PENDING", step: "business-name" }
+  };
+
+  const newState = {
+    ...currentState,
+    [mode]: {
+      ...(currentState as any)[mode],
+      step,
+      status: isCompleted ? "COMPLETED" : (currentState as any)[mode]?.status || "PENDING"
+    }
+  };
 
   await db
     .update(profiles)
-    .set(updateData)
+    .set({ modeSetupState: newState })
     .where(eq(profiles.id, user.id));
 
   return { success: true };

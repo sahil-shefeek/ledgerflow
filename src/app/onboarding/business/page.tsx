@@ -47,6 +47,9 @@ export default function BusinessOnboardingPage() {
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
             />
+            <p className="text-xs text-muted-foreground pt-1">
+              You can change this later in settings.
+            </p>
           </div>
 
           <div className="flex flex-col gap-2 pt-2">

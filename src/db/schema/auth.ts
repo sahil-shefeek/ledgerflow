@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, uuid, integer, bigint } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, uuid, integer, bigint, jsonb, pgEnum } from "drizzle-orm/pg-core";
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -57,6 +57,8 @@ export const rateLimit = pgTable("rate_limit", {
   lastRequest: bigint("last_request", { mode: "number" }),
 });
 
+export const onboardingStatusEnum = pgEnum("global_onboarding_status", ["PENDING", "COMPLETED"]);
+
 export const profiles = pgTable("profiles", {
   id: text("id")
     .primaryKey()
@@ -71,11 +73,14 @@ export const profiles = pgTable("profiles", {
   discoverableByPhone: boolean("discoverable_by_phone").default(true),
   discoverableByUsername: boolean("discoverable_by_username").default(true),
   friendInviteToken: uuid("friend_invite_token").defaultRandom().unique(),
-  globalOnboardingStatus: text("global_onboarding_status").default("PENDING"), // for profile & mode selection
-  personalSetupStatus: text("personal_setup_status").default("PENDING"),
-  personalSetupStep: text("personal_setup_step").default("bank-account"),
-  businessSetupStatus: text("business_setup_status").default("PENDING"),
-  businessSetupStep: text("business_setup_step").default("business-name"),
+  globalOnboardingStatus: onboardingStatusEnum("global_onboarding_status").default("PENDING"),
+  modeSetupState: jsonb("mode_setup_state").$type<{
+    personal: { status: "PENDING" | "COMPLETED", step: string };
+    business: { status: "PENDING" | "COMPLETED", step: string };
+  }>().default({
+    personal: { status: "PENDING", step: "bank-account" },
+    business: { status: "PENDING", step: "business-name" }
+  }),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow(),
 });
 

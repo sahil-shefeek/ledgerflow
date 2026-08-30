@@ -116,15 +116,19 @@ export async function seedRegisteredUser(options: SeedUserOptions = {}): Promise
       username: options.username || data.user.id,
       email: data.user.email,
       globalOnboardingStatus: "COMPLETED",
-      personalSetupStatus: "COMPLETED",
-      businessSetupStatus: "COMPLETED",
+      modeSetupState: {
+        personal: { status: "COMPLETED", step: "bank-account" },
+        business: { status: "COMPLETED", step: "business-name" }
+      }
     })
     .onConflictDoUpdate({
       target: profiles.id,
       set: {
         globalOnboardingStatus: "COMPLETED",
-        personalSetupStatus: "COMPLETED",
-        businessSetupStatus: "COMPLETED",
+        modeSetupState: {
+          personal: { status: "COMPLETED", step: "bank-account" },
+          business: { status: "COMPLETED", step: "business-name" }
+        },
         ...(options.username ? { username: options.username } : {}),
       },
     });

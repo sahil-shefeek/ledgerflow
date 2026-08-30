@@ -6,8 +6,7 @@ import { useAppStore } from '@/store/useAppStore'
 
 type ProfileSetupState = {
   globalOnboardingStatus: string | null;
-  personalSetupStatus: string | null;
-  businessSetupStatus: string | null;
+  modeSetupState?: any;
 }
 
 export function JitOnboardingGuard({ profile }: { profile: ProfileSetupState }) {
@@ -31,10 +30,17 @@ export function JitOnboardingGuard({ profile }: { profile: ProfileSetupState }) 
 
     // Mode Switch Block
     // If they are on dashboard or any protected route, check their active mode
-    if (mode === 'personal' && profile.personalSetupStatus === 'PENDING') {
-      router.push(`/onboarding/personal?returnTo=${encodeURIComponent(pathname)}`)
-    } else if (mode === 'business' && profile.businessSetupStatus === 'PENDING') {
-      router.push(`/onboarding/business?returnTo=${encodeURIComponent(pathname)}`)
+    const modeState = profile.modeSetupState || {};
+    const statusMap: Record<string, string | null> = {
+      personal: modeState.personal?.status || 'PENDING',
+      business: modeState.business?.status || 'PENDING',
+    }
+    
+    if (statusMap[mode] === 'PENDING') {
+      import('@/components/ui/toast').then(({ toast }) => {
+        toast.info(`Please complete your ${mode} setup first.`)
+      })
+      router.push(`/onboarding/${mode}?returnTo=${encodeURIComponent(pathname)}`)
     }
   }, [mode, profile, mounted, pathname, router])
 

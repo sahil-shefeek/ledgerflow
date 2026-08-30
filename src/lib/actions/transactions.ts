@@ -115,6 +115,21 @@ export async function createTransactionAction(
     throw new Error("Unauthorized");
   }
 
+  const profile = await db.select({
+    modeSetupState: profiles.modeSetupState
+  }).from(profiles).where(eq(profiles.id, currentUser.id)).limit(1);
+
+  if (profile.length > 0 && profile[0].modeSetupState) {
+    const p = profile[0].modeSetupState as any;
+    const targetMode = input.mode.toLowerCase();
+    if (targetMode === 'personal' && p.personal?.status === 'PENDING') {
+      throw new Error("Must complete personal onboarding first.");
+    }
+    if (targetMode === 'business' && p.business?.status === 'PENDING') {
+      throw new Error("Must complete business onboarding first.");
+    }
+  }
+
   return await db.transaction(async (tx) => {
     const [insertedTx] = await tx
       .insert(transactions)

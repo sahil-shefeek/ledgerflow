@@ -84,11 +84,13 @@ export function OnboardingWizard({
                 if (!isAvailable) {
                     const cleanName = fullName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'
                     const randomHex = Math.floor(Math.random() * 65535).toString(16)
-                    setSuggestions([
+                    const generatedSuggestions = [
                         `${debouncedUsername}123`,
                         `${cleanName}_${randomHex}`,
                         `${debouncedUsername}_app`
-                    ])
+                    ]
+                    const results = await Promise.all(generatedSuggestions.map(s => checkUsernameAvailability(s)))
+                    setSuggestions(generatedSuggestions.filter((_, i) => results[i]))
                 } else {
                     setSuggestions([])
                 }
@@ -111,7 +113,7 @@ export function OnboardingWizard({
             await completeGlobalOnboarding({ username, fullName, mode })
             setAppMode(mode)
             
-            toast.success("Profile created successfully!")
+            toast.success("Profile created!")
             
             if (onComplete) {
                 onComplete()

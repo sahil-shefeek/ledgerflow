@@ -33,9 +33,12 @@ const signInSchema = z.object({
 })
 
 const signUpSchema = z.object({
-    name: z.string().min(2, 'Name must be at least 2 characters'),
     email: z.string().email('Please enter a valid email address'),
     password: z.string().min(6, 'Password must be at least 6 characters'),
+    confirmPassword: z.string().min(6, 'Password must be at least 6 characters'),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
 })
 
 type AuthMode = 'SIGN_IN' | 'SIGN_UP'
@@ -64,7 +67,7 @@ function LoginContent() {
 
     const signUpForm = useForm<z.infer<typeof signUpSchema>>({
         resolver: zodResolver(signUpSchema),
-        defaultValues: { name: '', email: '', password: '' },
+        defaultValues: { email: '', password: '', confirmPassword: '' },
     })
 
     const hasLoadedFromStorage = useRef(false)
@@ -74,16 +77,13 @@ function LoginContent() {
         const savedState = localStorage.getItem('auth_form_state')
         if (savedState) {
             try {
-                const { email, name, mode: savedMode } = JSON.parse(savedState)
+                const { email, mode: savedMode } = JSON.parse(savedState)
                 if (savedMode === 'SIGN_IN' || savedMode === 'SIGN_UP') {
                     setMode(savedMode)
                 }
                 if (email) {
                     signInForm.setValue('email', email)
                     signUpForm.setValue('email', email)
-                }
-                if (name) {
-                    signUpForm.setValue('name', name)
                 }
             } catch (e) {
                 // Ignore invalid state
@@ -98,16 +98,18 @@ function LoginContent() {
     
     useEffect(() => {
         if (!hasLoadedFromStorage.current) return
-
-        const email = mode === 'SIGN_IN' ? signInValues.email : signUpValues.email
-        const name = signUpValues.name
         
-        localStorage.setItem('auth_form_state', JSON.stringify({ 
-            email: email || '', 
-            name: name || '', 
-            mode 
-        }))
-    }, [signInValues.email, signUpValues.email, signUpValues.name, mode])
+        // Save the email of whichever form has it, prioritizing the active mode
+        const activeEmail = mode === 'SIGN_IN' ? signInValues.email : signUpValues.email
+        
+        localStorage.setItem(
+            'auth_form_state',
+            JSON.stringify({
+                mode,
+                email: activeEmail || '',
+            })
+        )
+    }, [signInValues.email, signUpValues.email, mode])
 
     const handleGoogleLogin = async () => {
         setIsGoogleLoading(true)
@@ -156,7 +158,7 @@ function LoginContent() {
         const next = searchParams.get('next') || '/dashboard'
         await authClient.signUp.email(
             {
-                name: values.name,
+                name: "",
                 email: values.email,
                 password: values.password,
                 callbackURL: next,
@@ -296,22 +298,7 @@ function LoginContent() {
                             ) : (
                                 <Form key="sign-up" {...signUpForm}>
                                     <form onSubmit={signUpForm.handleSubmit(onSignUpSubmit)} className="space-y-4">
-                                        <FormField
-                                            control={signUpForm.control}
-                                            name="name"
-                                            render={({ field }) => (
-                                                <FormItem>
-                                                    <FormLabel>Full Name</FormLabel>
-                                                    <div className="relative">
-                                                        <Icon icon={UserIcon} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                                                        <FormControl>
-                                                            <Input className="pl-10" placeholder="John Doe" autoComplete="name" {...field} />
-                                                        </FormControl>
-                                                    </div>
-                                                    <FormMessage />
-                                                </FormItem>
-                                            )}
-                                        />
+
                                         <FormField
                                             control={signUpForm.control}
                                             name="email"
@@ -351,6 +338,22 @@ function LoginContent() {
                                                                 <Icon icon={EyeIcon} className="h-5 w-5" />
                                                             )}
                                                         </button>
+                                                    </div>
+                                                    <FormMessage />
+                                                </FormItem>
+                                            )}
+                                        />
+                                        <FormField
+                                            control={signUpForm.control}
+                                            name="confirmPassword"
+                                            render={({ field }) => (
+                                                <FormItem>
+                                                    <FormLabel>Confirm Password</FormLabel>
+                                                    <div className="relative">
+                                                        <Icon icon={LockIcon} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                                        <FormControl>
+                                                            <Input className="pl-10 pr-10" placeholder="••••••••" type={showPassword ? "text" : "password"} autoComplete="new-password" {...field} />
+                                                        </FormControl>
                                                     </div>
                                                     <FormMessage />
                                                 </FormItem>
