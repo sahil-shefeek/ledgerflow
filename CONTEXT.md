@@ -50,6 +50,12 @@ The process of linking one or more `Unregistered Contact` entries (1:1 context) 
 
 ### Onboarding Service
 Centralizes the multi-domain initialization of a newly registered user, decoupling the `auth` lifecycle from the provisioning of default profiles, preferences, businesses, accounts, and budget categories.
+- **Branched Mode Onboarding**: Onboarding strictly branches based on the user's `Workspace Mode` selection. Users are only asked for data relevant to their chosen mode (e.g., Bank Accounts for Personal, Business Name for Business).
+- **Mode-Specific State Tracking**: The database tracks setup progress independently per mode (e.g., `personal_setup_status`, `business_setup_status`, and current `setup_step`). This allows complex multi-step flows to be paused and resumed.
+- **Just-In-Time (JIT) Onboarding**: Intercepts user intent when prerequisite data is missing. This occurs in two phases:
+  1. **Mode Switch Block**: When entering a new mode for the first time, users are intercepted before reaching the dashboard and prompted to complete the mode's required setup.
+  2. **Action Block**: If a user bypasses initial setup and attempts an action (e.g., creating a transaction without a bank account), they are redirected to complete the specific setup step before seamlessly returning them to their original task via URL parameters (`?returnTo=`).
+- **Username Generation**: Handles real-time validation and conflict resolution during profile setup by auto-suggesting alternatives (based on name, email, or alphanumeric suffixes) if a desired handle is unavailable.
 
 ### Notification Service
 Centralizes the composition and fan-out of activity notifications (e.g., deleted transactions) to relevant contacts and group members. It handles both in-app notification state and out-of-app delivery (such as filtering and dispatching high-priority alerts via Web Push).
