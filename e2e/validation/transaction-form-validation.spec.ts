@@ -45,7 +45,7 @@ test.describe('Transaction Form Validation & Polish', () => {
         await userAPage.getByRole('button', { name: 'Save Transaction' }).click();
         
         // Assert toast alert for category
-        const toast = userAPage.locator('[data-sonner-toast]');
+        const toast = userAPage.locator('[data-slot="toast"]');
         await expect(toast).toBeVisible();
         await expect(toast).toContainText('Please pick a category for this expense');
     });
