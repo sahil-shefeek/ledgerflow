@@ -74,13 +74,8 @@ export const profiles = pgTable("profiles", {
   discoverableByUsername: boolean("discoverable_by_username").default(true),
   friendInviteToken: uuid("friend_invite_token").defaultRandom().unique(),
   globalOnboardingStatus: onboardingStatusEnum("global_onboarding_status").default("PENDING"),
-  modeSetupState: jsonb("mode_setup_state").$type<{
-    personal: { status: "PENDING" | "COMPLETED", step: string };
-    business: { status: "PENDING" | "COMPLETED", step: string };
-  }>().default({
-    personal: { status: "PENDING", step: "bank-account" },
-    business: { status: "PENDING", step: "business-name" }
-  }),
+  personalSetupStatus: onboardingStatusEnum("personal_setup_status").default("PENDING"),
+  businessSetupStatus: onboardingStatusEnum("business_setup_status").default("PENDING"),
   createdAt: timestamp("created_at", { withTimezone: true, mode: "date" }).defaultNow(),
 });
 

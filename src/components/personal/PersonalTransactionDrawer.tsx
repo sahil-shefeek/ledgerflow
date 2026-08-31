@@ -1,5 +1,7 @@
 "use client"
 import { useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -80,6 +82,10 @@ export function PersonalTransactionDrawer({
     const { mutate: updateTransaction, isPending: isUpdating } = useUpdateTransaction()
     const isPending = isAdding || isUpdating
     const [internalOpen, setInternalOpen] = useState(false)
+    const [showAccountNeededDialog, setShowAccountNeededDialog] = useState(false)
+
+    const router = useRouter()
+    const pathname = usePathname()
 
     const open = controlledOpen ?? internalOpen
     const setOpen = setControlledOpen ?? setInternalOpen
@@ -121,6 +127,10 @@ export function PersonalTransactionDrawer({
     }
 
     const handleOpenChange = (nextOpen: boolean) => {
+        if (nextOpen && accounts && accounts.length === 0 && !initialData) {
+            setShowAccountNeededDialog(true)
+            return
+        }
         setOpen(nextOpen)
         resetFormValues(nextOpen)
     }
@@ -170,7 +180,26 @@ export function PersonalTransactionDrawer({
     const contactDisplayName = selectedContact?.name || initialData?.contact_name || initialData?.contact?.name
 
     return (
-        <Drawer open={open} onOpenChange={handleOpenChange}>
+        <>
+            <Dialog open={showAccountNeededDialog} onOpenChange={setShowAccountNeededDialog}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Account Required</DialogTitle>
+                        <DialogDescription>
+                            You need at least one bank account or cash wallet to create a transaction. Would you like to add one now?
+                        </DialogDescription>
+                    </DialogHeader>
+                    <DialogFooter>
+                        <Button variant="ghost" onClick={() => setShowAccountNeededDialog(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={() => router.push("/onboarding/personal?returnTo=" + encodeURIComponent(pathname))}>
+                            Add Account
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+            <Drawer open={open} onOpenChange={handleOpenChange}>
             {!hideTrigger && (
                 <DrawerTrigger render={<Button
                         size="icon"
@@ -398,5 +427,6 @@ export function PersonalTransactionDrawer({
                 </div>
             </DrawerContent>
         </Drawer>
+        </>
     )
 }

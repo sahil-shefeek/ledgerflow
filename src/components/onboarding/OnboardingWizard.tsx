@@ -37,17 +37,21 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 export interface OnboardingWizardProps {
-    defaultUsername?: string
+        defaultUsername?: string
     defaultFullName?: string
     defaultStep?: number
+    defaultAccent?: string
+    defaultCurrency?: string
     className?: string
     onComplete?: () => void
 }
 
 export function OnboardingWizard({
-    defaultUsername = "",
+        defaultUsername = "",
     defaultFullName = "",
     defaultStep = 1,
+    defaultAccent = "green",
+    defaultCurrency = "₹",
     className,
     onComplete,
 }: OnboardingWizardProps) {
@@ -60,8 +64,10 @@ export function OnboardingWizard({
 
     // Form state
     const [fullName, setFullName] = React.useState(defaultFullName)
-    const [username, setUsername] = React.useState(defaultUsername)
+        const [username, setUsername] = React.useState(defaultUsername)
     const [mode, setMode] = React.useState<"personal" | "business">("personal")
+    const [accent, setAccent] = React.useState(defaultAccent)
+    const [currency, setCurrency] = React.useState(defaultCurrency)
 
     // Username Validation
     const debouncedUsername = useDebounce(username, 500)
@@ -83,14 +89,32 @@ export function OnboardingWizard({
                 
                 if (!isAvailable) {
                     const cleanName = fullName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'user'
-                    const randomHex = Math.floor(Math.random() * 65535).toString(16)
-                    const generatedSuggestions = [
-                        `${debouncedUsername}123`,
-                        `${cleanName}_${randomHex}`,
-                        `${debouncedUsername}_app`
-                    ]
-                    const results = await Promise.all(generatedSuggestions.map(s => checkUsernameAvailability(s)))
-                    setSuggestions(generatedSuggestions.filter((_, i) => results[i]))
+                    const validSuggestions: string[] = []
+                    let attempts = 0
+                    
+                    while (validSuggestions.length < 3 && attempts < 20) {
+                        const randomHex = Math.floor(Math.random() * 65535).toString(16)
+                        const suffixes = [
+                            `${attempts > 0 ? attempts : ''}123`,
+                            `_${randomHex}`,
+                            `_app${attempts > 0 ? attempts : ''}`,
+                            `${Math.floor(Math.random() * 999)}`
+                        ]
+                        
+                        const candidate = attempts < 3 
+                            ? (attempts === 0 ? `${debouncedUsername}${suffixes[0]}` : (attempts === 1 ? `${cleanName}${suffixes[1]}` : `${debouncedUsername}${suffixes[2]}`))
+                            : `${cleanName}${suffixes[3]}`
+                            
+                        if (!validSuggestions.includes(candidate)) {
+                            const isAvailable = await checkUsernameAvailability(candidate)
+                            if (isAvailable) {
+                                validSuggestions.push(candidate)
+                            }
+                        }
+                        attempts++
+                    }
+                    
+                    setSuggestions(validSuggestions)
                 } else {
                     setSuggestions([])
                 }
@@ -104,13 +128,14 @@ export function OnboardingWizard({
     }, [debouncedUsername, fullName])
 
     const setAppMode = useAppStore((state) => state.setMode)
+    const updateThemeSettings = useAppStore((state) => state.updateThemeSettings)
 
     const handleSubmit = async (e?: React.FormEvent) => {
         if (e) e.preventDefault()
         
         setIsSubmitting(true)
         try {
-            await completeGlobalOnboarding({ username, fullName, mode })
+            await completeGlobalOnboarding({ username, fullName, mode, currency, accent })
             setAppMode(mode)
             
             toast.success("Profile created!")
@@ -225,11 +250,92 @@ export function OnboardingWizard({
                 </QuestionnaireChoices>
             </QuestionnaireItem>
 
+            {/* Step 3: Accent Theme */}
+            <QuestionnaireItem step={3}>
+                <QuestionnaireTitle>Workspace Accent Theme</QuestionnaireTitle>
+                <QuestionnaireDescription>
+                    Select default accent palette boundaries for your active workspace interface.
+                </QuestionnaireDescription>
+                <QuestionnaireChoices
+                    value={accent}
+                    onValueChange={(val) => {
+                        setAccent(val);
+                        // Instant preview
+                        updateThemeSettings(mode, {
+                            theme: mode === "business" ? "light" : "dark",
+                            accent: val,
+                        });
+                    }}
+                >
+                    <QuestionnaireChoice value="blue">
+                        <span className="font-medium">Blue</span>
+                        <span className="text-xs text-muted-foreground">
+                            Professional corporate blue accents
+                        </span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="green">
+                        <span className="font-medium">Green</span>
+                        <span className="text-xs text-muted-foreground">
+                            Clean green primary accents
+                        </span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="violet">
+                        <span className="font-medium">Violet</span>
+                        <span className="text-xs text-muted-foreground">
+                            Modern vibrant violet accents
+                        </span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="orange">
+                        <span className="font-medium">Orange</span>
+                        <span className="text-xs text-muted-foreground">
+                            Warm high-contrast orange accents
+                        </span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="rose">
+                        <span className="font-medium">Rose</span>
+                        <span className="text-xs text-muted-foreground">
+                            Bold and expressive rose accents
+                        </span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="slate">
+                        <span className="font-medium">Slate</span>
+                        <span className="text-xs text-muted-foreground">
+                            Neutral and minimalist slate accents
+                        </span>
+                    </QuestionnaireChoice>
+                </QuestionnaireChoices>
+            </QuestionnaireItem>
+
+            {/* Step 4: Primary Currency */}
+            <QuestionnaireItem step={4}>
+                <QuestionnaireTitle>Default Currency</QuestionnaireTitle>
+                <QuestionnaireDescription>
+                    Select the primary currency symbol for your financial amounts and transaction reports.
+                </QuestionnaireDescription>
+                <QuestionnaireChoices
+                    value={currency}
+                    onValueChange={(val) => setCurrency(val)}
+                >
+                    <QuestionnaireChoice value="₹">
+                        <span className="font-medium">INR (₹) — Indian Rupee</span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="$">
+                        <span className="font-medium">USD ($) — US Dollar</span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="€">
+                        <span className="font-medium">EUR (€) — Euro</span>
+                    </QuestionnaireChoice>
+                    <QuestionnaireChoice value="£">
+                        <span className="font-medium">GBP (£) — British Pound</span>
+                    </QuestionnaireChoice>
+                </QuestionnaireChoices>
+            </QuestionnaireItem>
+
             {/* Questionnaire Actions */}
             <QuestionnaireActions>
                 {step > 1 && <QuestionnairePrevious disabled={isSubmitting}>Previous</QuestionnairePrevious>}
-                {step < 2 ? (
-                    <QuestionnaireNext disabled={!fullName || !isUsernameValid}>Next</QuestionnaireNext>
+                {step < 4 ? (
+                    <QuestionnaireNext disabled={step === 1 && (!fullName || !isUsernameValid)}>Next</QuestionnaireNext>
                 ) : (
                     <QuestionnaireSubmit onClick={handleSubmit} disabled={isSubmitting}>
                         {isSubmitting ? "Saving..." : "Continue"}

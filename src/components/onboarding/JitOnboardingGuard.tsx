@@ -6,7 +6,8 @@ import { useAppStore } from '@/store/useAppStore'
 
 type ProfileSetupState = {
   globalOnboardingStatus: string | null;
-  modeSetupState?: any;
+  personalSetupStatus: string | null;
+  businessSetupStatus: string | null;
 }
 
 export function JitOnboardingGuard({ profile }: { profile: ProfileSetupState }) {
@@ -30,10 +31,9 @@ export function JitOnboardingGuard({ profile }: { profile: ProfileSetupState }) 
 
     // Mode Switch Block
     // If they are on dashboard or any protected route, check their active mode
-    const modeState = profile.modeSetupState || {};
     const statusMap: Record<string, string | null> = {
-      personal: modeState.personal?.status || 'PENDING',
-      business: modeState.business?.status || 'PENDING',
+      personal: profile.personalSetupStatus,
+      business: profile.businessSetupStatus,
     }
     
     if (statusMap[mode] === 'PENDING') {

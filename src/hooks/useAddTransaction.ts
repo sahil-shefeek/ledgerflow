@@ -33,9 +33,13 @@ interface AddTransactionParams {
     splits?: SplitInput[]
 }
 
+import { useRouter, usePathname } from 'next/navigation'
+
 export function useAddTransaction() {
     const queryClient = useQueryClient()
     const { currentBusinessId } = useAppStore()
+    const router = useRouter()
+    const pathname = usePathname()
 
     return useMutation({
         mutationFn: async (newTransaction: AddTransactionParams) => {
@@ -43,10 +47,8 @@ export function useAddTransaction() {
                 throw new Error('No business selected')
             }
 
-            // Convert amount from rupees (user input) to integer paise for DB storage
             const amountInPaise = rupeesToPaise(newTransaction.amount)
 
-            // Prepare splits with amounts converted to paise
             const splitsPayload = newTransaction.splits && newTransaction.splits.length > 0
                 ? newTransaction.splits.map(split => ({
                     userId: split.user_id || null,
@@ -58,24 +60,36 @@ export function useAddTransaction() {
                 }))
                 : null
 
-            return await createTransactionAction({
-                amount: amountInPaise,
-                flow: newTransaction.flow,
-                mode: newTransaction.mode,
-                name: newTransaction.name,
-                note: newTransaction.note || null,
-                date: newTransaction.date,
-                dueDate: newTransaction.due_date || null,
-                contactId: newTransaction.contact_id || null,
-                categoryId: newTransaction.category_id || null,
-                accountId: newTransaction.account_id || null,
-                businessId: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
-                groupId: newTransaction.group_id || null,
-                payerId: newTransaction.payer_id || null,
-                payerGroupMemberId: newTransaction.payer_group_member_id || null,
-                splitType: newTransaction.split_type || 'EQUALLY',
-                splits: splitsPayload,
-            })
+            try {
+                return await createTransactionAction({
+                    amount: amountInPaise,
+                    flow: newTransaction.flow,
+                    mode: newTransaction.mode,
+                    name: newTransaction.name,
+                    note: newTransaction.note || null,
+                    date: newTransaction.date,
+                    dueDate: newTransaction.due_date || null,
+                    contactId: newTransaction.contact_id || null,
+                    categoryId: newTransaction.category_id || null,
+                    accountId: newTransaction.account_id || null,
+                    businessId: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
+                    groupId: newTransaction.group_id || null,
+                    payerId: newTransaction.payer_id || null,
+                    payerGroupMemberId: newTransaction.payer_group_member_id || null,
+                    splitType: newTransaction.split_type || 'EQUALLY',
+                    splits: splitsPayload,
+                })
+            } catch (error: any) {
+                if (error.message.includes("Must complete personal onboarding first")) {
+                    router.push(`/onboarding/personal?returnTo=/transaction/new`)
+                    throw error
+                }
+                if (error.message.includes("Must complete business onboarding first")) {
+                    router.push(`/onboarding/business?returnTo=/transaction/new`)
+                    throw error
+                }
+                throw error
+            }
         },
         onMutate: async (newTransaction) => {
             // Cancel any outgoing refetches to avoid race conditions with our optimistic update

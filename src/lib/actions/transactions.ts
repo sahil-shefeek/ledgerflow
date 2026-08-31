@@ -116,16 +116,16 @@ export async function createTransactionAction(
   }
 
   const profile = await db.select({
-    modeSetupState: profiles.modeSetupState
+    personalSetupStatus: profiles.personalSetupStatus,
+    businessSetupStatus: profiles.businessSetupStatus
   }).from(profiles).where(eq(profiles.id, currentUser.id)).limit(1);
 
-  if (profile.length > 0 && profile[0].modeSetupState) {
-    const p = profile[0].modeSetupState as any;
+  if (profile.length > 0) {
     const targetMode = input.mode.toLowerCase();
-    if (targetMode === 'personal' && p.personal?.status === 'PENDING') {
+    if (targetMode === 'personal' && profile[0].personalSetupStatus === 'PENDING') {
       throw new Error("Must complete personal onboarding first.");
     }
-    if (targetMode === 'business' && p.business?.status === 'PENDING') {
+    if (targetMode === 'business' && profile[0].businessSetupStatus === 'PENDING') {
       throw new Error("Must complete business onboarding first.");
     }
   }
