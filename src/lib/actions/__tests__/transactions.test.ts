@@ -16,6 +16,9 @@ const { mockInsertValues, mockReturning, mockUpdateSet, mockDeleteWhere, mockTx,
       accounts: {
         findFirst: vi.fn(),
       },
+      profiles: {
+        findFirst: vi.fn().mockResolvedValue({ personalSetupStatus: 'COMPLETED', businessSetupStatus: 'COMPLETED' }),
+      },
     };
 
     const mockTx = {
@@ -39,13 +42,6 @@ const { mockInsertValues, mockReturning, mockUpdateSet, mockDeleteWhere, mockTx,
       })),
       delete: vi.fn(() => ({
         where: mockDeleteWhere,
-      })),
-      select: vi.fn(() => ({
-        from: vi.fn(() => ({
-          where: vi.fn(() => ({
-            limit: vi.fn().mockResolvedValue([{ personalSetupStatus: 'COMPLETED', businessSetupStatus: 'COMPLETED' }])
-          }))
-        }))
       })),
     };
 

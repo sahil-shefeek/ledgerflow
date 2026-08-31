@@ -115,15 +115,18 @@ export async function createTransactionAction(
     throw new Error("Unauthorized");
   }
 
-  const profile = await db.select({
-    personalSetupStatus: profiles.personalSetupStatus,
-    businessSetupStatus: profiles.businessSetupStatus
-  }).from(profiles).where(eq(profiles.id, currentUser.id)).limit(1);
+  const profile = await db.query.profiles.findFirst({
+    where: eq(profiles.id, currentUser.id),
+    columns: {
+      personalSetupStatus: true,
+      businessSetupStatus: true
+    }
+  });
 
-  if (profile.length > 0) {
+  if (profile) {
     const targetMode = input.mode.toLowerCase() as "personal" | "business";
     const statusField = `${targetMode}SetupStatus` as const;
-    if (profile[0][statusField] === 'PENDING') {
+    if (profile[statusField] === 'PENDING') {
       return { success: false, error: "ONBOARDING_REQUIRED", onboardingMode: targetMode };
     }
   }
