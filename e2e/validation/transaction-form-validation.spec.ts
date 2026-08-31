@@ -35,7 +35,7 @@ test.describe('Transaction Form Validation & Polish', () => {
         // Type negative amount
         await userAPage.getByLabel('Amount (₹)').fill('-50');
         await userAPage.getByRole('button', { name: 'Save Transaction' }).click();
-        await expect(userAPage.getByText('Amount must be greater than zero')).toBeVisible();
+        await expect(userAPage.getByText('Amount must be a positive number')).toBeVisible();
         
         // Fix amount and title
         await userAPage.getByLabel('Amount (₹)').fill('100');
@@ -45,6 +45,8 @@ test.describe('Transaction Form Validation & Polish', () => {
         await userAPage.getByRole('button', { name: 'Save Transaction' }).click();
         
         // Assert toast alert for category
-        await expect(userAPage.getByText('Please pick a category for this expense')).toBeVisible();
+        const toast = userAPage.locator('[data-sonner-toast]');
+        await expect(toast).toBeVisible();
+        await expect(toast).toContainText('Please pick a category for this expense');
     });
 });

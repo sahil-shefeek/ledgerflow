@@ -50,7 +50,7 @@ const personalTransactionSchema = z.object({
         } else if (Number.isNaN(val)) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please enter a valid number' });
         } else if (val <= 0) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Amount must be greater than zero' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Amount must be a positive number' });
         }
     }),
     name: z.string().trim().min(1, 'What was this for? Please add a title'),
