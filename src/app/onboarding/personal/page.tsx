@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { createAccount } from "@/lib/actions/accounts"
 import { completeModeSetup } from "@/lib/actions/onboarding"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -19,7 +20,9 @@ export default function PersonalOnboardingPage() {
   const handleComplete = async (skipped: boolean) => {
     setIsSubmitting(true)
     try {
-      // In a real app, if !skipped, we would save the bank account to the DB here.
+      if (!skipped && bankName) {
+        await createAccount({ name: bankName, type: "BANK", balance: 0 })
+      }
       await completeModeSetup("personal", "completed", true)
       toast.success(skipped ? "Personal setup skipped for now." : "Bank account added!")
       router.push(returnTo)

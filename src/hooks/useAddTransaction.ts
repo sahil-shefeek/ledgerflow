@@ -33,13 +33,9 @@ interface AddTransactionParams {
     splits?: SplitInput[]
 }
 
-import { useRouter, usePathname } from 'next/navigation'
-
 export function useAddTransaction() {
     const queryClient = useQueryClient()
     const { currentBusinessId } = useAppStore()
-    const router = useRouter()
-    const pathname = usePathname()
 
     return useMutation({
         mutationFn: async (newTransaction: AddTransactionParams) => {
@@ -60,36 +56,30 @@ export function useAddTransaction() {
                 }))
                 : null
 
-            try {
-                return await createTransactionAction({
-                    amount: amountInPaise,
-                    flow: newTransaction.flow,
-                    mode: newTransaction.mode,
-                    name: newTransaction.name,
-                    note: newTransaction.note || null,
-                    date: newTransaction.date,
-                    dueDate: newTransaction.due_date || null,
-                    contactId: newTransaction.contact_id || null,
-                    categoryId: newTransaction.category_id || null,
-                    accountId: newTransaction.account_id || null,
-                    businessId: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
-                    groupId: newTransaction.group_id || null,
-                    payerId: newTransaction.payer_id || null,
-                    payerGroupMemberId: newTransaction.payer_group_member_id || null,
-                    splitType: newTransaction.split_type || 'EQUALLY',
-                    splits: splitsPayload,
-                })
-            } catch (error: any) {
-                if (error.message.includes("Must complete personal onboarding first")) {
-                    router.push(`/onboarding/personal?returnTo=/transaction/new`)
-                    throw error
-                }
-                if (error.message.includes("Must complete business onboarding first")) {
-                    router.push(`/onboarding/business?returnTo=/transaction/new`)
-                    throw error
-                }
-                throw error
+            const result = await createTransactionAction({
+                amount: amountInPaise,
+                flow: newTransaction.flow,
+                mode: newTransaction.mode,
+                name: newTransaction.name,
+                note: newTransaction.note || null,
+                date: newTransaction.date,
+                dueDate: newTransaction.due_date || null,
+                contactId: newTransaction.contact_id || null,
+                categoryId: newTransaction.category_id || null,
+                accountId: newTransaction.account_id || null,
+                businessId: newTransaction.mode === 'BUSINESS' ? currentBusinessId : null,
+                groupId: newTransaction.group_id || null,
+                payerId: newTransaction.payer_id || null,
+                payerGroupMemberId: newTransaction.payer_group_member_id || null,
+                splitType: newTransaction.split_type || 'EQUALLY',
+                splits: splitsPayload,
+            })
+            
+            if (result && 'error' in result && result.error === 'ONBOARDING_REQUIRED') {
+                throw new Error(`ONBOARDING_REQUIRED:${result.onboardingMode}`);
             }
+            
+            return result
         },
         onMutate: async (newTransaction) => {
             // Cancel any outgoing refetches to avoid race conditions with our optimistic update
@@ -164,7 +154,7 @@ export function useAddTransaction() {
             // Return context for rollback in onError
             return { previousTransactions, previousContacts, previousPersonalPeople, optimisticQueryKey }
         },
-        onError: (_err, _newTransaction, context) => {
+        onError: (err: any, _newTransaction, context) => {
             // Roll back to the snapshot values
             if (context?.previousTransactions !== undefined) {
                 queryClient.setQueryData(context.optimisticQueryKey, context.previousTransactions)
@@ -175,7 +165,13 @@ export function useAddTransaction() {
             if (context?.previousPersonalPeople !== undefined) {
                 queryClient.setQueryData(['personal-people'], context.previousPersonalPeople)
             }
-            toast.error('Failed to save transaction. Please check your connection and try again.')
+            
+            if (err.message?.startsWith('ONBOARDING_REQUIRED:')) {
+                const mode = err.message.split(':')[1]
+                toast.error(`Please complete ${mode} setup first to add transactions.`)
+            } else {
+                toast.error('Failed to save transaction. Please check your connection and try again.')
+            }
         },
         onSettled: () => {
             // Invalidate all relevant queries to ensure fresh data

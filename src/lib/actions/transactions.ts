@@ -121,12 +121,10 @@ export async function createTransactionAction(
   }).from(profiles).where(eq(profiles.id, currentUser.id)).limit(1);
 
   if (profile.length > 0) {
-    const targetMode = input.mode.toLowerCase();
-    if (targetMode === 'personal' && profile[0].personalSetupStatus === 'PENDING') {
-      throw new Error("Must complete personal onboarding first.");
-    }
-    if (targetMode === 'business' && profile[0].businessSetupStatus === 'PENDING') {
-      throw new Error("Must complete business onboarding first.");
+    const targetMode = input.mode.toLowerCase() as "personal" | "business";
+    const statusField = `${targetMode}SetupStatus` as const;
+    if (profile[0][statusField] === 'PENDING') {
+      return { success: false, error: "ONBOARDING_REQUIRED", onboardingMode: targetMode };
     }
   }
 
