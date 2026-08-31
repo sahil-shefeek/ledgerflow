@@ -40,6 +40,13 @@ const { mockInsertValues, mockReturning, mockUpdateSet, mockDeleteWhere, mockTx,
       delete: vi.fn(() => ({
         where: mockDeleteWhere,
       })),
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn(() => ({
+            limit: vi.fn().mockResolvedValue([{ personalSetupStatus: 'COMPLETED', businessSetupStatus: 'COMPLETED' }])
+          }))
+        }))
+      })),
     };
 
     return {

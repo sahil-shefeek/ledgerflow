@@ -21,18 +21,19 @@ vi.mock("next/navigation", () => ({
     replace: vi.fn(),
     refresh: vi.fn(),
   }),
+  useSearchParams: () => new URLSearchParams(),
 }))
 
 vi.mock("@/lib/actions/onboarding", () => ({
-  completeOnboarding: vi.fn().mockResolvedValue({ success: true }),
-  updateOnboardingStep: vi.fn().mockResolvedValue({ success: true }),
+  completeGlobalOnboarding: vi.fn().mockResolvedValue({ success: true }),
+  checkUsernameAvailability: vi.fn().mockResolvedValue(true),
 }))
 
 describe("OnboardingWizard Rendering", () => {
   it("renders step 1 with username input and progress indicator", () => {
     const html = renderToString(<OnboardingWizard />)
 
-    expect(html).toContain("Choose a Username")
+    expect(html).toContain("Complete Your Profile")
     expect(html).toContain("Step <!-- -->1<!-- --> of 4")
     expect(html).toContain("tabular-nums")
   })
@@ -168,7 +169,7 @@ describe("OnboardingWizard Step Navigation & Preference Saving", () => {
     // Assert preferences were saved
     expect(useAppStore.getState().mode).toBe("business")
     expect(useAppStore.getState().themeSettings.business.accent).toBe("blue")
-    expect(toast.success).toHaveBeenCalledWith("Onboarding preferences saved successfully!")
+    expect(toast.success).toHaveBeenCalledWith("Profile created!")
     expect(onCompleteMock).toHaveBeenCalled()
   })
 })

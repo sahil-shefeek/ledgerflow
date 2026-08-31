@@ -46,18 +46,18 @@ export function getPersonalTransactionFormDefaults(initialData?: any) {
 const personalTransactionSchema = z.object({
     amount: z.any().transform(v => (v === '' || v === undefined || v === null ? undefined : Number(v))).superRefine((val, ctx) => {
         if (val === undefined) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please enter an amount' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'How much was this for?' });
         } else if (Number.isNaN(val)) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please enter a valid amount' });
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Please enter a valid number' });
         } else if (val <= 0) {
             ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Amount must be greater than zero' });
         }
     }),
-    name: z.string().trim().min(1, 'Please provide a title for this transaction'),
+    name: z.string().trim().min(1, 'What was this for? Please add a title'),
     note: z.string().optional(),
     contact_id: z.string().nullable().optional(),
     category_id: z.string().nullable().optional(), // validated manually based on flow
-    account_id: z.string().min(1, 'Please select an account'),
+    account_id: z.string().min(1, 'Which account did you use?'),
     date: z.coerce.date(),
     flow: z.enum(['IN', 'OUT']),
 })
@@ -137,7 +137,7 @@ export function PersonalTransactionDrawer({
 
     function onSubmit(values: z.infer<typeof personalTransactionSchema>) {
         if (!values.category_id && flow === 'OUT') {
-            toast.error('Please select a category for this expense')
+            toast.error('Please pick a category for this expense')
             return
         }
 

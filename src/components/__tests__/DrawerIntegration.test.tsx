@@ -8,6 +8,12 @@ import { ContactReconciliationWizard, getGhostKey } from '../contacts/ContactRec
 
 (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true
 
+vi.mock('next/navigation', () => ({
+    useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
+    usePathname: () => '/dashboard',
+    useSearchParams: () => new URLSearchParams(),
+}))
+
 function changeInputValue(input: HTMLInputElement, value: string) {
     const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set
     nativeInputValueSetter?.call(input, value)

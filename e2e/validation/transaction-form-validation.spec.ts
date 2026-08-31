@@ -27,10 +27,10 @@ test.describe('Transaction Form Validation & Polish', () => {
         await userAPage.getByRole('button', { name: 'Save Transaction' }).click();
         
         // Assert empty amount error
-        await expect(userAPage.getByText('Please enter an amount')).toBeVisible();
+        await expect(userAPage.getByText('How much was this for?')).toBeVisible();
         
         // Assert missing title
-        await expect(userAPage.getByText('Please provide a title for this transaction')).toBeVisible();
+        await expect(userAPage.getByText('What was this for? Please add a title')).toBeVisible();
         
         // Type negative amount
         await userAPage.getByLabel('Amount (₹)').fill('-50');
@@ -45,6 +45,6 @@ test.describe('Transaction Form Validation & Polish', () => {
         await userAPage.getByRole('button', { name: 'Save Transaction' }).click();
         
         // Assert toast alert for category
-        await expect(userAPage.getByText('Please select a category for this expense')).toBeVisible();
+        await expect(userAPage.getByText('Please pick a category for this expense')).toBeVisible();
     });
 });

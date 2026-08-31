@@ -72,6 +72,8 @@ vi.mock('next/navigation', () => ({
     useRouter: () => ({
         push: vi.fn(),
     }),
+    usePathname: () => '/dashboard',
+    useSearchParams: () => new URLSearchParams(),
 }))
 
 describe('Issue 03: Safety Guards and Date Transform Caching', () => {

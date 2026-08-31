@@ -158,12 +158,12 @@ export function OnboardingWizard({
         <Questionnaire
             step={step}
             onStepChange={setStep}
-            totalSteps={2}
+            totalSteps={4}
             className={className}
         >
             <div className="flex items-center justify-between mb-2">
                 <QuestionnaireProgress className="tabular-nums font-medium text-xs text-muted-foreground">
-                    Step {step} of 2
+                    Step {step} of 4
                 </QuestionnaireProgress>
             </div>
 
