@@ -25,13 +25,22 @@ test.describe('Split Form Validation', () => {
         await page.getByRole('button', { name: 'Add Expense' }).click();
         await expect(page.getByRole('heading', { name: 'Add Expense' })).toBeVisible();
 
-        // 4. Fill in step 1
-        await page.getByRole('spinbutton').first().fill('100'); // Amount
+        // 4. Test step 1 validation (negative/zero amount)
+        await page.getByRole('spinbutton').first().fill('-50'); // Negative amount
         await page.getByPlaceholder("What's this for?").fill('Dinner'); // Expense Name
         
         // Wait for account to be auto-selected or at least fetched
         await expect(page.getByRole('combobox')).toContainText('Cash');
+        
+        await page.getByRole('button', { name: 'Next' }).click();
+        await expect(page.getByText('Please enter a valid amount').first()).toBeVisible();
+        
+        await page.getByRole('spinbutton').first().fill('0'); // Zero amount
+        await page.getByRole('button', { name: 'Next' }).click();
+        await expect(page.getByText('Please enter a valid amount').first()).toBeVisible();
 
+        // Fill in valid amount to proceed
+        await page.getByRole('spinbutton').first().fill('100');
         await page.getByRole('button', { name: 'Next' }).click();
 
         // Wait for step 2 to open
@@ -89,5 +98,24 @@ test.describe('Split Form Validation', () => {
         await percentInputs.nth(0).fill('60');
         await percentInputs.nth(1).fill('40');
         await expect(page.getByText('Total 100%')).toBeVisible();
+
+        // 7. Test 0-value split edge case
+        await page.getByRole('tab', { name: '1.23' }).click(); // Go back to BY_AMOUNT
+        await numberInputs.nth(0).fill('100');
+        await numberInputs.nth(1).fill('0');
+        await expect(page.getByText('Amounts match total')).toBeVisible();
+
+        // 8. Test EQUALLY validation (no members selected)
+        await page.getByRole('tab', { name: '=' }).click();
+        
+        const checkboxes = page.getByRole('checkbox');
+        await expect(checkboxes).toHaveCount(2);
+        
+        // Uncheck all selected members
+        await checkboxes.nth(0).uncheck();
+        await checkboxes.nth(1).uncheck();
+
+        await page.getByRole('button', { name: 'Send Request' }).click();
+        await expect(page.getByText('You must select at least one member to split equally').first()).toBeVisible();
     });
 });

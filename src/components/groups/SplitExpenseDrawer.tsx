@@ -107,6 +107,8 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                 toast.error('Custom amounts must sum to the total expense amount', { id: 'split-validation-error' })
             } else if (splitType === 'BY_PERCENTAGE') {
                 toast.error('Percentages must add up to exactly 100%', { id: 'split-validation-error' })
+            } else if (splitType === 'EQUALLY' && selectedMembers.length === 0) {
+                toast.error('You must select at least one member to split equally', { id: 'split-validation-error' })
             } else {
                 toast.error('Please fix the split amounts', { id: 'split-validation-error' })
             }
