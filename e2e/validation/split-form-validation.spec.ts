@@ -99,13 +99,7 @@ test.describe('Split Form Validation', () => {
         await percentInputs.nth(1).fill('40');
         await expect(page.getByText('Total 100%')).toBeVisible();
 
-        // 7. Test 0-value split edge case
-        await page.getByRole('tab', { name: '1.23' }).click(); // Go back to BY_AMOUNT
-        await numberInputs.nth(0).fill('100');
-        await numberInputs.nth(1).fill('0');
-        await expect(page.getByText('Amounts match total')).toBeVisible();
-
-        // 8. Test EQUALLY validation (no members selected)
+        // 7. Test EQUALLY validation (no members selected)
         await page.getByRole('tab', { name: '=' }).click();
         
         const checkboxes = page.getByRole('checkbox');
@@ -117,5 +111,14 @@ test.describe('Split Form Validation', () => {
 
         await page.getByRole('button', { name: 'Send Request' }).click();
         await expect(page.getByText('You must select at least one member to split equally').first()).toBeVisible();
+
+        // 8. Test 0-value split edge case (Submit form)
+        await page.getByRole('tab', { name: '1.23' }).click(); // Go back to BY_AMOUNT
+        await numberInputs.nth(0).fill('100');
+        await numberInputs.nth(1).fill('0');
+        await expect(page.getByText('Amounts match total')).toBeVisible();
+        
+        await page.getByRole('button', { name: 'Send Request' }).click();
+        await expect(page.getByText('Expense added!')).toBeVisible();
     });
 });

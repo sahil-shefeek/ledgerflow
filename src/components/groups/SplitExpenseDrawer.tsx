@@ -18,6 +18,34 @@ import { getDefaultAccount } from '@/lib/account-utils'
 import { AddAccountDrawer } from '@/components/finance/AddAccountDrawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, rupeesToPaise } from '@/lib/currency'
+import { z } from 'zod'
+
+const splitExpenseSchema = z.object({
+    splitType: z.enum(['EQUALLY', 'BY_AMOUNT', 'BY_PERCENTAGE']),
+    shares: z.record(z.string(), z.number()),
+    selectedMembers: z.array(z.string()),
+    totalAmount: z.number()
+}).superRefine((data, ctx) => {
+    const hasNegative = Object.values(data.shares).some(val => val < 0)
+    if (hasNegative) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Split amounts cannot be negative' })
+        return
+    }
+
+    if (data.splitType === 'EQUALLY' && data.selectedMembers.length === 0) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'You must select at least one member to split equally' })
+    } else if (data.splitType === 'BY_AMOUNT') {
+        const total = Object.values(data.shares).reduce((sum, val) => sum + (val || 0), 0)
+        if (Math.abs(data.totalAmount - total) > 0.01) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Custom amounts must sum to the total expense amount' })
+        }
+    } else if (data.splitType === 'BY_PERCENTAGE') {
+        const total = Object.values(data.shares).reduce((sum, val) => sum + (val || 0), 0)
+        if (Math.abs(100 - total) > 0.01) {
+            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Percentages must add up to exactly 100%' })
+        }
+    }
+})
 
 
 interface SplitExpenseDrawerProps {
@@ -97,21 +125,15 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
     }
 
     const handleSubmit = () => {
-        if (!isValid) {
-            const hasNegative = Object.values(shares).some(val => (val || 0) < 0)
-            if (hasNegative) {
-                toast.error('Split amounts cannot be negative', { id: 'split-validation-error' })
-                return
-            }
-            if (splitType === 'BY_AMOUNT') {
-                toast.error('Custom amounts must sum to the total expense amount', { id: 'split-validation-error' })
-            } else if (splitType === 'BY_PERCENTAGE') {
-                toast.error('Percentages must add up to exactly 100%', { id: 'split-validation-error' })
-            } else if (splitType === 'EQUALLY' && selectedMembers.length === 0) {
-                toast.error('You must select at least one member to split equally', { id: 'split-validation-error' })
-            } else {
-                toast.error('Please fix the split amounts', { id: 'split-validation-error' })
-            }
+        const validation = splitExpenseSchema.safeParse({
+            splitType,
+            shares,
+            selectedMembers,
+            totalAmount: numericAmount
+        });
+
+        if (!validation.success) {
+            toast.error(validation.error.issues[0].message, { id: 'split-validation-error' })
             return
         }
 
