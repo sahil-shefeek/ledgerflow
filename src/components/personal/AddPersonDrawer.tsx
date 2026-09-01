@@ -20,11 +20,9 @@ import { Card } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 
-const personSchema = z.object({
-    name: z.string().trim().min(1, 'Please enter a name.').min(2, 'Name must be at least 2 characters.'),
-    phone: z.string().trim().regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number (e.g., +919876543210).').or(z.literal('')).optional(),
-    image_url: z.string().optional(),
-})
+import { baseContactSchema } from '@/lib/validations/contact'
+
+const personSchema = baseContactSchema
 
 interface AddPersonDrawerProps {
     children?: React.ReactNode

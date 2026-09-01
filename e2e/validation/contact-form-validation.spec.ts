@@ -29,6 +29,9 @@ test.describe('Contact Form Validation', () => {
         await expect(userAPage.getByText('Person added')).toBeVisible();
         await expect(userAPage.getByText('John Doe')).toBeVisible();
 
+        // Wait for drawer to close fully
+        await expect(userAPage.getByText('Add New Person')).not.toBeVisible();
+
         // 4. Test duplicate entry
         await userAPage.getByRole('button', { name: 'Add New' }).click();
         await userAPage.getByLabel('Name').fill('John Doe');

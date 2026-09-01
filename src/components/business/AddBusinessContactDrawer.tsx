@@ -16,11 +16,10 @@ import { LoaderIcon } from "@hugeicons/core-free-icons";
 import { AvatarUpload } from '@/components/ui/avatar-upload'
 import { Contact } from '@/types'
 
-const contactSchema = z.object({
-    name: z.string().trim().min(1, 'Please enter a name.').min(2, 'Name must be at least 2 characters.'),
-    phone: z.string().trim().regex(/^\+?[1-9]\d{1,14}$/, 'Please enter a valid phone number (e.g., +919876543210).').or(z.literal('')).optional(),
+import { baseContactSchema } from '@/lib/validations/contact'
+
+const contactSchema = baseContactSchema.extend({
     type: z.enum(['CUSTOMER', 'SUPPLIER', 'OTHER']),
-    image_url: z.string().optional(),
 })
 
 interface AddBusinessContactDrawerProps {
