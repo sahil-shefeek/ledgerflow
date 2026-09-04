@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
     "db:generate": "./scripts/db.sh -e .env.local generate",
     "db:migrate": "./scripts/db.sh -e .env.local migrate",
     "db:push": "./scripts/db.sh -e .env.local push",
