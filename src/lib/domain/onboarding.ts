@@ -27,11 +27,11 @@ export async function initializeNewUser(user: { id: string; name?: string | null
 
     // 5. Default Categories
     const defaultCategories = [
-      { name: "Salary", type: "INCOME", icon: "wallet" },
-      { name: "Food", type: "EXPENSE", icon: "utensils" },
-      { name: "Transport", type: "EXPENSE", icon: "car" },
-      { name: "Shopping", type: "EXPENSE", icon: "shopping-bag" },
-      { name: "Utilities", type: "EXPENSE", icon: "zap" },
+      { name: "Salary", type: "INCOME", icon: "BanknoteIcon" },
+      { name: "Food", type: "EXPENSE", icon: "Coffee01Icon" },
+      { name: "Transport", type: "EXPENSE", icon: "Car01Icon" },
+      { name: "Shopping", type: "EXPENSE", icon: "DiscountTag01Icon" },
+      { name: "Utilities", type: "EXPENSE", icon: "BoltIcon" },
     ];
     
     await tx.insert(schema.categories).values(

@@ -75,11 +75,14 @@ export function useAddTransaction() {
                 splits: splitsPayload,
             })
             
-            if (result && 'error' in result && result.error === 'ONBOARDING_REQUIRED') {
-                throw new Error(`ONBOARDING_REQUIRED:${result.onboardingMode}`);
+            if (!result.success) {
+                if (result.error?.startsWith('ONBOARDING_REQUIRED')) {
+                    throw new Error(result.error);
+                }
+                throw new Error(result.error || 'Failed to create transaction');
             }
             
-            return result
+            return result.data;
         },
         onMutate: async (newTransaction) => {
             // Cancel any outgoing refetches to avoid race conditions with our optimistic update

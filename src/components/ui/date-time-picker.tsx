@@ -67,6 +67,7 @@ export function DateTimePicker({
         <Popover>
             <PopoverTrigger render={
                 <Button
+                    data-testid="date-picker-trigger"
                     variant={"outline"}
                     className={cn(
                         "w-[280px] justify-start text-left font-normal",
@@ -83,6 +84,7 @@ export function DateTimePicker({
                     selected={selectedDateTime}
                     onSelect={handleDateSelect}
                     autoFocus
+                    required
                 />
                 <div className="p-3 border-t border-border">
                     <Label className="text-xs">Time</Label>

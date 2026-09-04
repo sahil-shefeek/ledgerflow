@@ -72,6 +72,7 @@ export function CategoriesContent() {
                             {categories?.map((category) => (
                                 <div
                                     key={category.id}
+                                    data-testid="category-item"
                                     className={`flex items-center justify-between p-4 border rounded-lg group ${!category.active ? 'opacity-60 bg-muted/50' : 'bg-card hover:bg-accent/40'} transition-colors`}
                                 >
                                     <div className="flex items-center gap-3">

@@ -6,8 +6,9 @@ export function useUnifiedTransactions() {
     return useQuery({
         queryKey: ['unified-transactions'],
         queryFn: async () => {
-            const data = await getUnifiedTransactionsAction()
-            return data as unknown as TransactionWithJoins[]
+            const response = await getUnifiedTransactionsAction({})
+            if (!response.success || !response.data) throw new Error(response.error)
+            return response.data as unknown as TransactionWithJoins[]
         },
     })
 }

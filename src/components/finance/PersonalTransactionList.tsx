@@ -59,8 +59,9 @@ export function PersonalTransactionList({ onEdit }: PersonalTransactionListProps
     const { data: transactions, isLoading } = useQuery({
         queryKey: ['personal-transactions'],
         queryFn: async () => {
-            const data = await getPersonalTransactionsAction()
-            return data as unknown as PersonalTransaction[]
+            const response = await getPersonalTransactionsAction({})
+            if (!response.success || !response.data) throw new Error(response.error)
+            return response.data as unknown as PersonalTransaction[]
         },
     })
 
@@ -76,7 +77,7 @@ export function PersonalTransactionList({ onEdit }: PersonalTransactionListProps
                         <CardTitle>Recent Transactions</CardTitle>
                         <div className="flex gap-2">
                             <Select items={[ {value: 'ALL', label: 'All Time'}, {value: 'TODAY', label: 'Today'}, {value: 'WEEK', label: 'This Week'}, {value: 'MONTH', label: 'This Month'}, {value: 'YEAR', label: 'This Year'} ]} value={timeFilter} onValueChange={(v) => setTimeFilter(v as TimeFilter)}>
-                                <SelectTrigger className="w-[110px] h-8 text-xs">
+                                <SelectTrigger data-testid="transaction-time-filter" className="w-[110px] h-8 text-xs">
                                     <SelectValue placeholder="Filter" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -88,7 +89,7 @@ export function PersonalTransactionList({ onEdit }: PersonalTransactionListProps
                                 </SelectContent>
                             </Select>
                             <Select items={[ {value: 'LATEST', label: 'Latest'}, {value: 'OLDEST', label: 'Oldest'}, {value: 'HIGHEST', label: 'Highest Amount'}, {value: 'LOWEST', label: 'Lowest Amount'} ]} value={sortBy} onValueChange={(v) => setSortBy(v as SortOption)}>
-                                <SelectTrigger className="w-[110px] h-8 text-xs">
+                                <SelectTrigger data-testid="transaction-sort-filter" className="w-[110px] h-8 text-xs">
                                     <SelectValue placeholder="Sort" />
                                 </SelectTrigger>
                                 <SelectContent>

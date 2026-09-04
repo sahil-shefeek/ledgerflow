@@ -11,6 +11,9 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
     // 1. Seed user, account, category, and recurring transaction
     const userResult = await seedRegisteredUser();
     await authenticateContext(userAContext, userResult.sessionToken, baseURL, userResult.cookies);
+    await userAContext.addInitScript(() => {
+        localStorage.setItem('app-preference', JSON.stringify({ state: { mode: 'personal' }, version: 0 }));
+    });
 
     const account = await seedBankAccount(userResult.user.id, {
       name: 'Mobile Test Account',
@@ -48,11 +51,11 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
     await userAPage.waitForLoadState('networkidle');
 
     // 3. Locate the recurring transaction item
-    const txItem = userAPage.locator('text=Netflix Mobile').locator('xpath=ancestor::div[contains(@class, "border")][1]');
+    const txItem = userAPage.getByTestId('recurring-transaction-item').filter({ hasText: 'Netflix Mobile' });
     await expect(txItem).toBeVisible();
 
     // 4. Assert explicit "..." button is visible on mobile viewport
-    const moreButton = txItem.locator('button[data-slot="mobile-action-trigger"], button[aria-label*="options" i], button[aria-label*="more" i]');
+    const moreButton = txItem.getByTestId('mobile-action-trigger');
     await expect(moreButton).toBeVisible();
 
     // Verify touch target size of the trigger button on mobile
@@ -67,12 +70,12 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
     await moreButton.click();
 
     // 6. Assert Bottom Sheet drawer popup is visible
-    const drawerPopup = userAPage.locator('[data-slot="drawer-popup"], [data-slot="drawer-content"]');
+    const drawerPopup = userAPage.getByRole('dialog', { name: 'Netflix Mobile' });
     await expect(drawerPopup).toBeVisible();
 
     // 7. Assert actions are present inside Bottom Sheet
-    const editAction = drawerPopup.locator('text=Edit Subscription');
-    const deleteAction = drawerPopup.locator('text=Delete Subscription');
+    const editAction = drawerPopup.getByRole('button', { name: 'Edit Subscription' });
+    const deleteAction = drawerPopup.getByRole('button', { name: 'Delete Subscription' });
 
     await expect(editAction).toBeVisible();
     await expect(deleteAction).toBeVisible();
@@ -92,6 +95,9 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
   }) => {
     const userResult = await seedRegisteredUser();
     await authenticateContext(userAContext, userResult.sessionToken, baseURL, userResult.cookies);
+    await userAContext.addInitScript(() => {
+        localStorage.setItem('app-preference', JSON.stringify({ state: { mode: 'personal' }, version: 0 }));
+    });
 
     await db.insert(categories).values({
       userId: userResult.user.id,
@@ -104,18 +110,18 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
     await userAPage.goto('/dashboard/categories');
     await userAPage.waitForLoadState('networkidle');
 
-    const categoryCard = userAPage.locator('text=Entertainment Category').locator('xpath=ancestor::div[contains(@class, "border")][1]');
+    const categoryCard = userAPage.getByTestId('category-item').filter({ hasText: 'Entertainment Category' });
     await expect(categoryCard).toBeVisible();
 
-    const moreButton = categoryCard.locator('button[data-slot="mobile-action-trigger"], button[aria-label*="options" i]');
+    const moreButton = categoryCard.getByTestId('mobile-action-trigger');
     await expect(moreButton).toBeVisible();
 
     await moreButton.click();
 
-    const drawerPopup = userAPage.locator('[data-slot="drawer-popup"], [data-slot="drawer-content"]');
+    const drawerPopup = userAPage.getByRole('dialog', { name: 'Entertainment Category' });
     await expect(drawerPopup).toBeVisible();
-    await expect(drawerPopup.locator('text=Edit')).toBeVisible();
-    await expect(drawerPopup.locator('text=Delete')).toBeVisible();
+    await expect(drawerPopup.getByRole('button', { name: 'Edit' })).toBeVisible();
+    await expect(drawerPopup.getByRole('button', { name: 'Delete' })).toBeVisible();
   });
 
   test('desktop viewport reveals actions on hover and does not show mobile trigger', async ({
@@ -125,6 +131,9 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
   }) => {
     const userResult = await seedRegisteredUser();
     await authenticateContext(userAContext, userResult.sessionToken, baseURL, userResult.cookies);
+    await userAContext.addInitScript(() => {
+        localStorage.setItem('app-preference', JSON.stringify({ state: { mode: 'personal' }, version: 0 }));
+    });
 
     const account = await seedBankAccount(userResult.user.id, {
       name: 'Desktop Test Account',
@@ -156,21 +165,21 @@ test.describe('Mobile Interaction Patterns: Bottom Sheets & Desktop Hover', () =
       failureCount: 0,
     });
 
-    // Desktop viewport (1280x800)
-    await userAPage.setViewportSize({ width: 1280, height: 800 });
+    // Desktop viewport (1440x900) - Expanded to ensure grid column surpasses the @sm (384px) container breakpoint
+    await userAPage.setViewportSize({ width: 1440, height: 900 });
     await userAPage.goto('/dashboard');
     await userAPage.waitForLoadState('networkidle');
 
-    const txItem = userAPage.locator('text=Cloud Server').locator('xpath=ancestor::div[contains(@class, "border")][1]');
+    const txItem = userAPage.getByTestId('recurring-transaction-item').filter({ hasText: 'Cloud Server' });
     await expect(txItem).toBeVisible();
 
     // On desktop, desktop-actions container is visible
-    const desktopActions = txItem.locator('.desktop-actions');
+    const desktopActions = txItem.getByTestId('desktop-actions');
     await expect(desktopActions).toBeVisible();
 
     // Hover reveals edit/delete buttons
     await txItem.hover();
-    const editBtn = desktopActions.locator('button[aria-label*="Edit" i]');
+    const editBtn = desktopActions.getByRole('button', { name: 'Edit Cloud Server' });
     await expect(editBtn).toBeVisible();
   });
 });

@@ -25,7 +25,7 @@ export function useUpdateTransaction() {
             // Convert amount from rupees (user input) to integer paise for DB storage
             const amountInPaise = rupeesToPaise(updatedTransaction.amount)
 
-            return await updateTransactionAction({
+            const result = await updateTransactionAction({
                 id: updatedTransaction.id,
                 amount: amountInPaise,
                 flow: updatedTransaction.flow,
@@ -38,6 +38,8 @@ export function useUpdateTransaction() {
                 name: updatedTransaction.name,
                 note: updatedTransaction.note || null,
             })
+            if (!result.success) throw new Error(result.error)
+            return result.data
         },
         onSuccess: () => {
             queryClient.invalidateQueries({ queryKey: ['transactions'] })

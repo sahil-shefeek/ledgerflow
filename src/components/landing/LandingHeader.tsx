@@ -83,7 +83,7 @@ export function LandingHeader({ user }: LandingHeaderProps) {
         <button
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           className="md:hidden p-2 text-muted-foreground hover:text-foreground focus:outline-none"
-          aria-label="Toggle MenuIcon"
+          aria-label="Toggle Menu"
         >
           {mobileMenuOpen ? <Icon icon={Cancel01Icon} className="h-6 w-6" /> : <Icon icon={MenuIcon} className="h-6 w-6" />}
         </button>

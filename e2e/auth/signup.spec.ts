@@ -12,42 +12,44 @@ test.describe('03 — Signup & Registration', () => {
 
     test('should render mandatory fields', async ({ page }) => {
         await expect(page.getByText(/Create an Account/i)).toBeVisible();
-        await expect(page.getByLabel(/Full Name/i)).toBeVisible();
-        await expect(page.getByLabel(/Email/i)).toBeVisible();
-        await expect(page.getByLabel(/Password/i)).toBeVisible();
+        await expect(page.getByLabel(/^Email$/i)).toBeVisible();
+        await expect(page.getByLabel(/^Password$/i)).toBeVisible();
+        await expect(page.getByLabel(/Confirm Password/i)).toBeVisible();
         await expect(page.getByRole('button', { name: /Create Account/i })).toBeVisible();
     });
 
     test('should show inline validation messages for invalid inputs', async ({ page }) => {
+        const passwordItem = page.locator('[data-slot="form-item"]').filter({ has: page.getByLabel(/^Password$/i) });
+        const confirmPasswordItem = page.locator('[data-slot="form-item"]').filter({ has: page.getByLabel(/Confirm Password/i) });
+
         // Try submitting empty
         await page.getByRole('button', { name: /Create Account/i }).click();
 
         // Check for inline validation messages
-        await expect(page.getByText('Name must be at least 2 characters')).toBeVisible();
         await expect(page.getByText('Please enter a valid email address')).toBeVisible();
-        await expect(page.getByText('Password must be at least 6 characters')).toBeVisible();
+        await expect(passwordItem.getByText('Password must be at least 6 characters')).toBeVisible();
+        await expect(confirmPasswordItem.getByText('Password must be at least 6 characters')).toBeVisible();
 
         // Try submitting invalid formats
-        await page.getByLabel(/Full Name/i).fill('A'); // < 2 characters
-        await page.getByLabel(/Email/i).fill('invalid-email');
-        await page.getByLabel(/Password/i).fill('12345'); // < 6 characters
+        await page.getByLabel(/^Email$/i).fill('invalid-email');
+        await page.getByLabel(/^Password$/i).fill('12345'); // < 6 characters
+        await page.getByLabel(/Confirm Password/i).fill('123456'); // >= 6 characters, triggers mismatch refinement
 
         await page.getByRole('button', { name: /Create Account/i }).click();
 
-        await expect(page.getByText('Name must be at least 2 characters')).toBeVisible();
         await expect(page.getByText('Please enter a valid email address')).toBeVisible();
-        await expect(page.getByText('Password must be at least 6 characters')).toBeVisible();
+        await expect(passwordItem.getByText('Password must be at least 6 characters')).toBeVisible();
+        await expect(confirmPasswordItem.getByText("Passwords don't match")).toBeVisible();
     });
 
     test('should successfully register and initialize user profile', async ({ page }) => {
         const prefix = generateTestPrefix('signup');
         const testEmail = `${prefix}@example.com`;
-        const testName = `Test User ${prefix.slice(-6)}`;
         const testPassword = 'SecurePassword123!';
 
-        await page.getByLabel(/Full Name/i).fill(testName);
-        await page.getByLabel(/Email/i).fill(testEmail);
-        await page.getByLabel(/Password/i).fill(testPassword);
+        await page.getByLabel(/^Email$/i).fill(testEmail);
+        await page.getByLabel(/^Password$/i).fill(testPassword);
+        await page.getByLabel(/Confirm Password/i).fill(testPassword);
 
         // Submit form
         await page.getByRole('button', { name: /Create Account/i }).click();
@@ -61,7 +63,6 @@ test.describe('03 — Signup & Registration', () => {
         // Verify user was created in DB
         const users = await db.select().from(user).where(eq(user.email, testEmail));
         expect(users.length).toBe(1);
-        expect(users[0].name).toBe(testName);
 
         // Add to tracker for cleanup
         globalTestDataTracker.userIds.add(users[0].id);

@@ -93,11 +93,11 @@ describe("Transactions Server Actions", () => {
           name: "Lunch",
           date: new Date(),
         })
-      ).rejects.toThrow("Unauthorized");
+      ).resolves.toEqual({ error: "Unauthorized" });
     });
 
     it("creates transaction and splits atomically using Drizzle transaction", async () => {
-      const mockCreatedTx = { id: "tx-123", name: "Lunch", amount: "5000" };
+      const mockCreatedTx = { id: "123e4567-e89b-12d3-a456-426614174000", name: "Lunch", amount: "5000" };
       mockInsertValues
         .mockReturnValueOnce({
           returning: vi.fn().mockResolvedValue([mockCreatedTx]),
@@ -121,15 +121,14 @@ describe("Transactions Server Actions", () => {
 
       expect(mockDb.transaction).toHaveBeenCalled();
       expect(result).toEqual({
-        id: "tx-123",
         success: true,
-        transaction: mockCreatedTx,
+        data: { id: "123e4567-e89b-12d3-a456-426614174000", transaction: mockCreatedTx }
       });
       expect(mockTx.insert).toHaveBeenCalledTimes(2);
     });
 
     it("deducts expense amount from account balance when accountId is specified", async () => {
-      const mockCreatedTx = { id: "tx-123", name: "Groceries", amount: "3000", accountId: "acc-1" };
+      const mockCreatedTx = { id: "123e4567-e89b-12d3-a456-426614174000", name: "Groceries", amount: "3000", accountId: "acc-1" };
       mockInsertValues.mockReturnValueOnce({
         returning: vi.fn().mockResolvedValue([mockCreatedTx]),
       });
@@ -154,13 +153,13 @@ describe("Transactions Server Actions", () => {
   describe("getTransactionsAction", () => {
     it("throws Unauthorized if no user provided", async () => {
       mockAuthSession(null);
-      await expect(getTransactionsAction()).rejects.toThrow("Unauthorized");
+      await expect(getTransactionsAction({})).resolves.toEqual({ error: "Unauthorized" });
     });
 
     it("returns formatted transactions with joined relations", async () => {
       const mockTxData = [
         {
-          id: "tx-1",
+          id: "11111111-1111-4111-8111-111111111111",
           userId: "user-1",
           amount: "15000",
           flow: "OUT",
@@ -180,10 +179,10 @@ describe("Transactions Server Actions", () => {
 
       const result = await getTransactionsAction({ mode: "PERSONAL" });
 
-      expect(result).toHaveLength(1);
-      expect(result[0].id).toBe("tx-1");
-      expect(result[0].amount).toBe(15000);
-      expect(result[0].category?.name).toBe("Food");
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].id).toBe("11111111-1111-4111-8111-111111111111");
+      expect(result.data![0].amount).toBe(15000);
+      expect(result.data![0].category?.name).toBe("Food");
     });
   });
 
@@ -206,9 +205,9 @@ describe("Transactions Server Actions", () => {
       ]);
 
       const result = await getPersonalTransactionsAction({});
-      expect(result).toHaveLength(1);
-      expect(result[0].name).toBe("Coffee");
-      expect(result[0].amount).toBe(2000);
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].name).toBe("Coffee");
+      expect(result.data![0].amount).toBe(2000);
     });
   });
 
@@ -233,8 +232,8 @@ describe("Transactions Server Actions", () => {
       ]);
 
       const result = await getUnifiedTransactionsAction({});
-      expect(result).toHaveLength(1);
-      expect(result[0].amount).toBe(50000);
+      expect(result.data).toHaveLength(1);
+      expect(result.data![0].amount).toBe(50000);
     });
   });
 
@@ -244,26 +243,26 @@ describe("Transactions Server Actions", () => {
 
       await expect(
         updateTransactionAction({
-          id: "tx-missing",
+          id: "99999999-9999-4999-8999-999999999999",
           amount: 1000,
           flow: "OUT",
           mode: "PERSONAL",
           name: "Updated",
           date: new Date(),
         })
-      ).rejects.toThrow("Unauthorized or transaction not found");
+      ).resolves.toEqual({ error: "Transaction not found" });
     });
 
     it("updates transaction without account balance adjustment if no account linked", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         userId: "user-1",
         amount: "1000",
         flow: "OUT",
         accountId: null,
       });
 
-      const updatedRow = { id: "tx-1", name: "Updated Name" };
+      const updatedRow = { id: "11111111-1111-4111-8111-111111111111", name: "Updated Name" };
       mockUpdateSet.mockReturnValueOnce({
         where: vi.fn().mockReturnValueOnce({
           returning: vi.fn().mockResolvedValueOnce([updatedRow]),
@@ -271,7 +270,7 @@ describe("Transactions Server Actions", () => {
       });
 
       const result = await updateTransactionAction({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         amount: 2000,
         flow: "OUT",
         mode: "PERSONAL",
@@ -279,19 +278,19 @@ describe("Transactions Server Actions", () => {
         date: new Date(),
       });
 
-      expect(result).toEqual(updatedRow);
+      expect(result).toEqual({ success: true, data: updatedRow });
     });
 
     it("calculates balance delta and updates account for expense amount increase", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         userId: "user-1",
         amount: "2000",
         flow: "OUT",
         accountId: "acc-1",
       });
 
-      const updatedRow = { id: "tx-1", amount: "3000" };
+      const updatedRow = { id: "11111111-1111-4111-8111-111111111111", amount: "3000" };
       mockUpdateSet
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) }) // account update
         .mockReturnValueOnce({
@@ -301,7 +300,7 @@ describe("Transactions Server Actions", () => {
         }); // transaction update
 
       const result = await updateTransactionAction({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         amount: 3000,
         flow: "OUT",
         mode: "PERSONAL",
@@ -311,19 +310,19 @@ describe("Transactions Server Actions", () => {
       });
 
       expect(mockUpdateSet).toHaveBeenNthCalledWith(1, { balance: expect.anything() });
-      expect(result).toEqual(updatedRow);
+      expect(result).toEqual({ success: true, data: updatedRow });
     });
 
     it("calculates balance delta and updates account when switching flow from OUT to IN", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         userId: "user-1",
         amount: "2000",
         flow: "OUT",
         accountId: "acc-1",
       });
 
-      const updatedRow = { id: "tx-1", flow: "IN", amount: "2000" };
+      const updatedRow = { id: "11111111-1111-4111-8111-111111111111", flow: "IN", amount: "2000" };
       mockUpdateSet
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) })
         .mockReturnValueOnce({
@@ -333,7 +332,7 @@ describe("Transactions Server Actions", () => {
         });
 
       await updateTransactionAction({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         amount: 2000,
         flow: "IN",
         mode: "PERSONAL",
@@ -347,14 +346,14 @@ describe("Transactions Server Actions", () => {
 
     it("reverts old account balance and updates new account balance when account is changed", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         userId: "user-1",
         amount: "2000",
         flow: "OUT",
         accountId: "acc-old",
       });
 
-      const updatedRow = { id: "tx-1", accountId: "acc-new", amount: "2000" };
+      const updatedRow = { id: "11111111-1111-4111-8111-111111111111", accountId: "acc-new", amount: "2000" };
       mockUpdateSet
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) }) // old account update
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) }) // new account update
@@ -365,7 +364,7 @@ describe("Transactions Server Actions", () => {
         }); // transaction update
 
       await updateTransactionAction({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         amount: 2000,
         flow: "OUT",
         mode: "PERSONAL",
@@ -383,14 +382,12 @@ describe("Transactions Server Actions", () => {
     it("throws error if transaction does not exist or owned by another user", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce(null);
 
-      await expect(deleteTransactionAction("tx-other")).rejects.toThrow(
-        "Unauthorized or transaction not found"
-      );
+      await expect(deleteTransactionAction("33333333-3333-4333-8333-333333333333")).resolves.toEqual({ error: "Transaction not found" });
     });
 
     it("soft-deletes transaction record using deleted_at and restores expense amount to account balance", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce({
-        id: "tx-1",
+        id: "11111111-1111-4111-8111-111111111111",
         userId: "user-1",
         amount: "2000",
         flow: "OUT",
@@ -401,9 +398,9 @@ describe("Transactions Server Actions", () => {
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) }) // account balance update
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) }); // soft-delete transaction update
 
-      const result = await deleteTransactionAction("tx-1");
+      const result = await deleteTransactionAction("11111111-1111-4111-8111-111111111111");
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ success: true, data: { success: true } });
       expect(mockUpdateSet).toHaveBeenNthCalledWith(1, { balance: expect.anything() });
       expect(mockUpdateSet).toHaveBeenNthCalledWith(2, expect.objectContaining({
         deletedAt: expect.any(Date),
@@ -412,7 +409,7 @@ describe("Transactions Server Actions", () => {
 
     it("soft-deletes transaction record using deleted_at and deducts income amount from account balance", async () => {
       mockDb.query.transactions.findFirst.mockResolvedValueOnce({
-        id: "tx-2",
+        id: "22222222-2222-4222-8222-222222222222",
         userId: "user-1",
         amount: "5000",
         flow: "IN",
@@ -423,9 +420,9 @@ describe("Transactions Server Actions", () => {
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) })
         .mockReturnValueOnce({ where: vi.fn().mockResolvedValueOnce([]) });
 
-      const result = await deleteTransactionAction("tx-2");
+      const result = await deleteTransactionAction("22222222-2222-4222-8222-222222222222");
 
-      expect(result).toEqual({ success: true });
+      expect(result).toEqual({ success: true, data: { success: true } });
       expect(mockUpdateSet).toHaveBeenNthCalledWith(1, { balance: expect.anything() });
       expect(mockUpdateSet).toHaveBeenNthCalledWith(2, expect.objectContaining({
         deletedAt: expect.any(Date),

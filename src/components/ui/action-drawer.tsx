@@ -87,6 +87,7 @@ export function ActionDrawer({
       size="icon"
       aria-label={triggerAriaLabel}
       data-slot="mobile-action-trigger"
+      data-testid="mobile-action-trigger"
       className={cn(
         "h-10 w-10 min-h-12 min-w-12 sm:min-h-8 sm:min-w-8 sm:h-8 sm:w-8 relative text-muted-foreground hover:text-foreground",
         triggerClassName
@@ -101,7 +102,7 @@ export function ActionDrawer({
       {trigger !== null && (
         <DrawerTrigger render={trigger ? (trigger as React.ReactElement) : defaultTrigger} />
       )}
-      <DrawerContent className={cn("max-h-[90dvh]", className)}>
+      <DrawerContent data-testid="action-drawer" className={cn("max-h-[90dvh]", className)}>
         <div className="mx-auto w-full max-w-sm flex flex-col min-h-0">
           {(title || description) && (
             <DrawerHeader className="text-left pb-2">

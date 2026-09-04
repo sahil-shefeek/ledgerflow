@@ -97,6 +97,7 @@ export function RecurringTransactionsList() {
                                 return (
                                     <div
                                         key={t.id}
+                                        data-testid="recurring-transaction-item"
                                         className={`flex flex-col gap-2 p-3 border rounded-lg bg-card hover:bg-accent/50 transition-colors group ${
                                             isPaused ? 'border-destructive/50 bg-destructive/5' : ''
                                         }`}
@@ -132,7 +133,7 @@ export function RecurringTransactionsList() {
                                                 </span>
 
                                                 {/* Desktop actions: hover-revealed without degrading mobile */}
-                                                <div className="desktop-actions hidden @sm:flex items-center gap-1">
+                                                <div data-testid="desktop-actions" className="desktop-actions hidden @sm:flex items-center gap-1">
                                                     {isPaused && (
                                                         <Button
                                                             variant="outline"

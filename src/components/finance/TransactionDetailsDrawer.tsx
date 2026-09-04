@@ -60,7 +60,8 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
     const handleDelete = async () => {
         try {
             setIsDeleting(true)
-            await deleteTransactionAction(transaction.id)
+            const result = await deleteTransactionAction(transaction.id)
+            if (!result.success) throw new Error(result.error)
 
             toast.success('Transaction deleted')
             queryClient.invalidateQueries({ queryKey: ['transactions'] })

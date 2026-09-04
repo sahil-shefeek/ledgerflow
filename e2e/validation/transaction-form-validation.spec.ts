@@ -16,7 +16,7 @@ test.describe('Transaction Form Validation & Polish', () => {
         await expect(userAPage).toHaveURL(/\/dashboard/);
         // Open the transaction drawer (Personal Transaction Drawer)
         // Locate the button with fixed position
-        const addButton = userAPage.locator('button.fixed, button[aria-label="Add"], button:has-text("Add Transaction")').first();
+        const addButton = userAPage.getByTestId('fab-add-transaction');
         await expect(addButton).toBeVisible();
         await addButton.click();
         

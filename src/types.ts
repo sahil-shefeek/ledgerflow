@@ -72,14 +72,19 @@ export interface Notification {
 
 export interface TransactionRow {
     id: string
+    user_id: string
     /** Stored as integer paise (100 paise = ₹1). Use currency.ts helpers for arithmetic. */
     amount: Paise
     flow: 'IN' | 'OUT'
     mode: 'BUSINESS' | 'PERSONAL'
     date: string
+    due_date?: string | null
     name: string
     note?: string | null
-    contact_id: string | null
+    contact_id?: string | null
+    category_id?: string | null
+    account_id?: string | null
+    business_id?: string | null
     group_id?: string | null
     payer_id?: string | null
     payer_group_member_id?: string | null
@@ -92,6 +97,10 @@ export interface TransactionWithJoins extends TransactionRow {
         name: string
         phone: string | null
     }
+    contact?: {
+        id: string
+        name: string
+    } | null
     category?: {
         name: string
         icon: string

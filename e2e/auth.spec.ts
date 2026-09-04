@@ -24,7 +24,6 @@ test.describe('Authentication Flow', () => {
 
         // Check for Sign Up elements
         await expect(page.getByText(/Create an Account/i)).toBeVisible();
-        await expect(page.getByPlaceholder('John Doe')).toBeVisible();
         await expect(page.getByRole('button', { name: /Create Account/i })).toBeVisible();
     });
 

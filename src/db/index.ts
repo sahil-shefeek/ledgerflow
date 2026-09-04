@@ -20,3 +20,4 @@ export const client = postgres(connectionString, postgresOptions);
 export const db = drizzle(client, { schema });
 
 export type DB = typeof db;
+export type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
