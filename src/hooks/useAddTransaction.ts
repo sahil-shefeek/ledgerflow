@@ -19,18 +19,18 @@ interface AddTransactionParams {
     amount: number
     flow: 'IN' | 'OUT'
     mode: 'BUSINESS' | 'PERSONAL'
-    contact_id?: string
-    category_id?: string
-    account_id?: string
-    group_id?: string
-    payer_id?: string
-    payer_group_member_id?: string
+    contact_id?: string | null
+    category_id?: string | null
+    account_id?: string | null
+    group_id?: string | null
+    payer_id?: string | null
+    payer_group_member_id?: string | null
     split_type?: 'EQUALLY' | 'BY_AMOUNT' | 'BY_PERCENTAGE'
     date: Date
-    due_date?: Date
+    due_date?: Date | null
     name: string
-    note?: string
-    splits?: SplitInput[]
+    note?: string | null
+    splits?: SplitInput[] | null
 }
 
 export function useAddTransaction() {

@@ -1,5 +1,5 @@
 "use client"
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from '@/components/ui/drawer'
@@ -57,7 +57,9 @@ const personalTransactionSchema = z.object({
     note: z.string().optional(),
     contact_id: z.string().nullable().optional(),
     category_id: z.string().nullable().optional(), // validated manually based on flow
-    account_id: z.string().min(1, 'Which account did you use?'),
+    account_id: z.string({ 
+        message: 'Which account did you use?' 
+    }).min(1, 'Which account did you use?'),
     date: z.coerce.date(),
     flow: z.enum(['IN', 'OUT']),
 })
@@ -106,7 +108,7 @@ export function PersonalTransactionDrawer({
             contact_id: defaultValues.contact_id,
             category_id: defaultValues.category_id,
             account_id: defaultValues.account_id || defaultAccount?.id || '',
-        } as any,
+        },
     })
 
     const resetFormValues = (nextOpen: boolean) => {
@@ -126,6 +128,12 @@ export function PersonalTransactionDrawer({
         }
     }
 
+    useEffect(() => {
+        if (open) {
+            resetFormValues(true)
+        }
+    }, [open, initialData, defaultAccount?.id])
+
     const handleOpenChange = (nextOpen: boolean) => {
         if (nextOpen && accounts && accounts.length === 0 && !initialData) {
             setShowAccountNeededDialog(true)
@@ -136,6 +144,11 @@ export function PersonalTransactionDrawer({
     }
 
     function onSubmit(values: z.infer<typeof personalTransactionSchema>) {
+        if (values.amount === undefined) {
+            toast.error('How much was this for?')
+            return
+        }
+
         if (!values.category_id && flow === 'OUT') {
             toast.error('Please pick a category for this expense')
             return
@@ -143,6 +156,7 @@ export function PersonalTransactionDrawer({
 
         const transactionData = {
             ...values,
+            amount: values.amount,
             contact_id: values.contact_id || initialData?.contact_id || null,
             mode: 'PERSONAL' as const,
             flow: flow,
@@ -167,10 +181,8 @@ export function PersonalTransactionDrawer({
         }
 
         if (initialData?.id) {
-            // @ts-ignore
             updateTransaction({ ...transactionData, id: initialData.id }, options)
         } else {
-            // @ts-ignore
             addTransaction(transactionData, options)
         }
     }
@@ -202,6 +214,7 @@ export function PersonalTransactionDrawer({
             <Drawer open={open} onOpenChange={handleOpenChange}>
             {!hideTrigger && (
                 <DrawerTrigger render={<Button
+                        data-testid="fab-add-transaction"
                         size="icon"
                         className="fixed bottom-[calc(5rem+env(safe-area-inset-bottom,0px))] md:bottom-6 right-[calc(1.5rem+env(safe-area-inset-right,0px))] shadow-lg z-40 rounded-full h-14 w-14"
                      />}>
@@ -209,7 +222,7 @@ export function PersonalTransactionDrawer({
                         <span className="sr-only">Add</span>
                     </DrawerTrigger>
             )}
-            <DrawerContent className="max-h-[90dvh]">
+            <DrawerContent data-testid="personal-transaction-drawer" className="max-h-[90dvh]">
                 <div className="mx-auto w-full max-w-sm flex flex-col min-h-0 max-h-[90dvh]">
                     <DrawerHeader className="shrink-0">
                         <DrawerTitle>{initialData?.id ? 'Edit Transaction' : 'Add Expense / Income'}</DrawerTitle>
@@ -299,13 +312,19 @@ export function PersonalTransactionDrawer({
                                                 <FormControl>
                                                     <ToggleGroup
                                                         value={field.value ? [field.value] : []}
-                                                        onValueChange={(val) => field.onChange(val[0] || null)}
+                                                        onValueChange={(val) => {
+                                                            const arr = Array.isArray(val) ? val : (val ? [val] : []);
+                                                            if (arr.length > 0) {
+                                                                field.onChange(arr[arr.length - 1]);
+                                                            }
+                                                        }}
                                                         className="justify-start flex-wrap gap-2"
                                                     >
                                                         {budgets?.map((cat) => (
                                                             <ToggleGroupItem
                                                                 key={cat.id}
                                                                 value={cat.id}
+                                                                data-testid={`category-${cat.id}`}
                                                                 aria-label={cat.name}
                                                                 className="h-9 px-3 border border-input data-pressed:bg-primary data-pressed:text-primary-foreground"
                                                             >
@@ -347,13 +366,19 @@ export function PersonalTransactionDrawer({
                                                 ) : (
                                                     <ToggleGroup
                                                         value={field.value ? [field.value] : []}
-                                                        onValueChange={(val) => field.onChange(val[0] || null)}
+                                                        onValueChange={(val) => {
+                                                            const arr = Array.isArray(val) ? val : (val ? [val] : []);
+                                                            if (arr.length > 0) {
+                                                                field.onChange(arr[arr.length - 1]);
+                                                            }
+                                                        }}
                                                         className="justify-start flex-wrap gap-2"
                                                     >
                                                         {accounts?.map((acc) => (
                                                             <ToggleGroupItem
                                                                 key={acc.id}
                                                                 value={acc.id}
+                                                                data-testid={`account-${acc.id}`}
                                                                 aria-label={acc.name}
                                                                 className="h-9 px-3 border border-input data-pressed:bg-primary data-pressed:text-primary-foreground"
                                                             >

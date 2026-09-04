@@ -44,7 +44,7 @@ export default function DashboardPage() {
                     {mode === 'business' ? (
                         <BusinessSwitcher />
                     ) : (
-                        <h1 className="text-2xl font-bold tracking-tight">
+                        <h1 data-testid="personal-heading" className="text-2xl font-bold tracking-tight">
                             Personal Finance
                         </h1>
                     )}

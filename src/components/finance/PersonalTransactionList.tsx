@@ -70,7 +70,7 @@ export function PersonalTransactionList({ onEdit }: PersonalTransactionListProps
 
     return (
         <>
-            <Card className="flex flex-col">
+            <Card className="flex flex-col" data-testid="personal-transactions-card">
                 <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                         <CardTitle>Recent Transactions</CardTitle>
@@ -134,6 +134,7 @@ export function PersonalTransactionList({ onEdit }: PersonalTransactionListProps
                             {filteredTransactions?.map((t) => (
                                 <div
                                     key={t.id}
+                                    data-testid="transaction-item"
                                     className="flex items-center justify-between cursor-pointer hover:bg-muted/50 p-2 rounded-lg transition-colors"
                                     onClick={() => {
                                         setSelectedTransaction(t)

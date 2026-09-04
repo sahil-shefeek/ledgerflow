@@ -78,7 +78,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
 
     return (
         <Drawer open={open} onOpenChange={onOpenChange}>
-            <DrawerContent className="max-h-[90dvh]">
+            <DrawerContent data-testid="transaction-details-drawer" className="max-h-[90dvh]">
                 <div className="mx-auto w-full max-w-sm flex flex-col min-h-0 max-h-[90dvh]">
                     <DrawerHeader className="shrink-0">
                         <DrawerTitle>Transaction Details</DrawerTitle>
@@ -128,31 +128,6 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                     <div className="text-sm font-medium text-muted-foreground">Split Details</div>
                                     <div className="space-y-2">
                                         {transaction.splits.map((split: any) => {
-                                            // Fallback Chain: Real Profile -> Ghost Name -> Snapshot -> Unknown
-                                            // The hook joins: profiles(full_name), group_members(ghost_name)
-                                            // But standard join might be nested? 
-                                            // Let's rely on what we have. 
-                                            // Actually, `useTransactions` joins `transaction_splits` which has `member_name_snapshot`.
-                                            // It also joins `group_member_id` but doesn't deep join `group_members` in the array.
-                                            // So we mainly rely on `member_name_snapshot` for history preservation, 
-                                            // UNLESS we have a way to fetch current names.
-                                            // The current `useTransactions` query:
-                                            // splits:transaction_splits(user_id, amount, group_member_id, member_name_snapshot)
-                                            // It does NOT join profiles or group_members FOR THE SPLITS.
-                                            // So we MUST rely on `member_name_snapshot` if available, 
-                                            // OR we need to update the query to fetching more deep data if we want "Live" names.
-                                            // However, for "Snapshot" feature, using the snapshot name is correct for history.
-                                            // But for "Live" accuracy when group is alive, we might want real names.
-                                            // Given the requirements of "Snapshot Strategy" to fix deletion, 
-                                            // using snapshot name as primary display when data is missing is key.
-                                            // But usually you want: Live Name if exists > Snapshot Name.
-                                            // Since we didn't update the query to deep fetch split profiles, we will use `member_name_snapshot`.
-                                            // But wait, the standard usually expects standard names.
-                                            // Let's stick to the prompt's fallback chain: Real Profile -> Ghost -> Snapshot.
-                                            // If I don't have Real/Ghost loaded in `splits` array, I can't show them.
-                                            // I should probably update `useTransactions` to fetch them if I want to follow that chain strict.
-                                            // Let's check `useTransactions.ts` again.
-
                                             const displayName = split.member_name_snapshot || 'Unknown'
 
                                             return (
@@ -166,8 +141,6 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                 </div>
                             )}
 
-
-
                             {!isCreator ? (
                                 <div className="p-3 bg-muted/50 rounded-lg text-center text-sm text-muted-foreground">
                                     Created by {transaction.payer?.full_name || 'your friend'}. Cannot be modified.
@@ -178,6 +151,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                         variant="outline"
                                         className="flex-1"
                                         onClick={handleEdit}
+                                        data-testid="edit-transaction-button"
                                     >
                                         <Icon icon={Edit04Icon} className="mr-2 h-4 w-4" />
                                         Edit
@@ -187,6 +161,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                         className="flex-1"
                                         onClick={handleDelete}
                                         disabled={isDeleting}
+                                        data-testid="delete-transaction-button"
                                     >
                                         <Icon icon={TrashIcon} className="mr-2 h-4 w-4" />
                                         Delete

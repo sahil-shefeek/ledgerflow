@@ -8,13 +8,13 @@ interface UpdateTransactionParams {
     amount: number
     flow: 'IN' | 'OUT'
     mode: 'BUSINESS' | 'PERSONAL'
-    contact_id?: string
-    category_id?: string
-    account_id?: string
+    contact_id?: string | null
+    category_id?: string | null
+    account_id?: string | null
     date: Date
-    due_date?: Date
+    due_date?: Date | null
     name: string
-    note?: string
+    note?: string | null
 }
 
 export function useUpdateTransaction() {
@@ -40,7 +40,6 @@ export function useUpdateTransaction() {
             })
         },
         onSuccess: () => {
-            toast.success('Transaction updated')
             queryClient.invalidateQueries({ queryKey: ['transactions'] })
             queryClient.invalidateQueries({ queryKey: ['personal-transactions'] })
             queryClient.invalidateQueries({ queryKey: ['contacts'] })
