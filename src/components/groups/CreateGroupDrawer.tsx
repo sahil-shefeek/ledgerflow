@@ -42,10 +42,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Checkbox } from '@/components/ui/checkbox'
 
-const formSchema = z.object({
-    name: z.string().min(1, 'Group name is required'),
-    type: z.string(),
-})
+import { createGroupSchema as formSchema } from '@/lib/validations/group'
 
 interface Member {
     id?: string // Real user ID
@@ -91,7 +88,7 @@ export function CreateGroupDrawer({ children }: { children: React.ReactNode }) {
     const onSubmit = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true)
         try {
-            await createGroupAction({
+            const res = await createGroupAction({
                 name: values.name,
                 type: values.type,
                 members: members.map(m => ({
@@ -102,14 +99,20 @@ export function CreateGroupDrawer({ children }: { children: React.ReactNode }) {
                 })),
             })
 
+            if (res.error) {
+                const firstError = res.fieldErrors ? Object.values(res.fieldErrors).flat().filter(Boolean)[0] : undefined;
+                toast.error(firstError || res.error);
+                return;
+            }
+
             toast.success('Group created successfully')
             queryClient.invalidateQueries({ queryKey: ['groups'] })
             setOpen(false)
             form.reset()
             setMembers([])
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
-            toast.error('Failed to create group')
+            toast.error(error.message || 'Failed to create group')
         } finally {
             setIsSubmitting(false)
         }
@@ -203,7 +206,7 @@ export function CreateGroupDrawer({ children }: { children: React.ReactNode }) {
                                                 value={ghostName}
                                                 onChange={(e) => setGhostName(e.target.value)}
                                             />
-                                            <Button type="button" size="sm" onClick={handleAddGhost} disabled={!ghostName.trim()}>
+                                            <Button type="button" size="sm" onClick={handleAddGhost} disabled={!ghostName} aria-label="Add person">
                                                 <Icon icon={PlusIcon} className="h-4 w-4" />
                                             </Button>
                                         </div>
@@ -240,7 +243,7 @@ export function CreateGroupDrawer({ children }: { children: React.ReactNode }) {
                                 </div>
 
                                 <DrawerFooter className="px-0">
-                                    <Button type="submit" disabled={isSubmitting}>
+                                    <Button type="submit" disabled={isSubmitting} data-testid="create-group-submit">
                                         {isSubmitting && <Icon icon={LoaderIcon} className="mr-2 h-4 w-4 animate-spin" />}
                                         Create Group
                                     </Button>

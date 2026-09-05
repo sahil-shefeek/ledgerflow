@@ -105,7 +105,7 @@ describe("Groups Server Actions", () => {
       });
 
       const res = await getGroupByInviteAction("invalid-code");
-      expect(res).toEqual([]);
+      expect(res.data).toEqual([]);
     });
 
     it("returns group and ghost members for valid invite code", async () => {
@@ -128,8 +128,8 @@ describe("Groups Server Actions", () => {
       });
 
       const res = await getGroupByInviteAction("valid-code");
-      expect(res).toHaveLength(1);
-      expect(res[0]).toEqual({
+      expect(res.data).toHaveLength(1);
+      expect(res.data![0]).toEqual({
         group_id: "g1",
         group_name: "Trip Group",
         group_avatar_url: null,
@@ -141,7 +141,8 @@ describe("Groups Server Actions", () => {
   describe("joinGroupAction", () => {
     it("throws Unauthorized if not logged in", async () => {
       (auth.api.getSession as any).mockResolvedValueOnce(null);
-      await expect(joinGroupAction("code123")).rejects.toThrow("Unauthorized");
+      const res = await joinGroupAction({ inviteCode: "code123" });
+      expect(res.error).toBe("Unauthorized");
     });
 
     it("joins group as new member if not already member", async () => {
@@ -170,8 +171,8 @@ describe("Groups Server Actions", () => {
       // 3. insert new member
       mockInsertValues.mockResolvedValueOnce(undefined);
 
-      const res = await joinGroupAction("code123", null);
-      expect(res).toEqual({ success: true, group_id: "g1" });
+      const res = await joinGroupAction({ inviteCode: "code123", claimGhostMemberId: undefined });
+      expect(res.data).toEqual({ success: true, group_id: "g1" });
     });
 
     it("returns existing status if already a member", async () => {
@@ -195,7 +196,7 @@ describe("Groups Server Actions", () => {
         }),
       });
 
-      const res = await joinGroupAction("code123");
+      const res = await joinGroupAction({ inviteCode: "code123" });
       expect(res).toEqual({ success: true, message: "Already a member", group_id: "g1" });
     });
 
@@ -235,8 +236,8 @@ describe("Groups Server Actions", () => {
         where: vi.fn().mockResolvedValueOnce(undefined),
       });
 
-      const res = await joinGroupAction("code123", "ghost-1");
-      expect(res).toEqual({ success: true, group_id: "g1" });
+      const res = await joinGroupAction({ inviteCode: "code123", claimGhostMemberId: "ghost-1" });
+      expect(res.data).toEqual({ success: true, group_id: "g1" });
       expect(mockTx.update).toHaveBeenCalled();
     });
   });
@@ -252,7 +253,8 @@ describe("Groups Server Actions", () => {
         }),
       });
 
-      await expect(linkGhostToFriendAction("g1", "ghost-1", "friend-1")).rejects.toThrow("Group not found");
+      const res = await linkGhostToFriendAction({ groupId: "g1", ghostMemberId: "ghost-1", friendUserId: "friend-1" });
+      expect(res.error).toBe("Group not found");;
     });
 
     it("throws if user is not group admin", async () => {
@@ -265,7 +267,8 @@ describe("Groups Server Actions", () => {
         }),
       });
 
-      await expect(linkGhostToFriendAction("g1", "ghost-1", "friend-1")).rejects.toThrow("Only group admin can link members");
+      const res = await linkGhostToFriendAction({ groupId: "g1", ghostMemberId: "ghost-1", friendUserId: "friend-1" });
+      expect(res.error).toBe("Only group admin can link members");;
     });
 
     it("throws if target friend is already a member", async () => {
@@ -287,7 +290,8 @@ describe("Groups Server Actions", () => {
         }),
       });
 
-      await expect(linkGhostToFriendAction("g1", "ghost-1", "friend-1")).rejects.toThrow("This friend is already a member of the group. Cannot merge.");
+      const res = await linkGhostToFriendAction({ groupId: "g1", ghostMemberId: "ghost-1", friendUserId: "friend-1" });
+      expect(res.error).toBe("This friend is already a member of the group. Cannot merge.");;
     });
 
     it("links ghost member to friend successfully", async () => {
@@ -320,8 +324,8 @@ describe("Groups Server Actions", () => {
         where: vi.fn().mockResolvedValueOnce(undefined),
       });
 
-      const res = await linkGhostToFriendAction("g1", "ghost-1", "friend-1");
-      expect(res).toEqual({ success: true });
+      const res = await linkGhostToFriendAction({ groupId: "g1", ghostMemberId: "ghost-1", friendUserId: "friend-1" });
+      expect(res.data).toEqual({ success: true });
       expect(mockTx.update).toHaveBeenCalled();
     });
   });
@@ -359,8 +363,8 @@ describe("Groups Server Actions", () => {
       });
 
       expect(mockDb.transaction).toHaveBeenCalled();
-      expect(res.id).toBe("g-new");
-      expect(res.name).toBe("Goa Vacation");
+      expect(res.data!.id).toBe("g-new");
+      expect(res.data!.name).toBe("Goa Vacation");
     });
   });
 
@@ -379,7 +383,7 @@ describe("Groups Server Actions", () => {
       });
 
       const res = await updateGroupAction({ id: "g1", name: "Updated Name" });
-      expect(res).toEqual({ success: true });
+      expect(res.data).toEqual({ success: true });
     });
 
     it("deletes group", async () => {
@@ -394,7 +398,7 @@ describe("Groups Server Actions", () => {
       mockDeleteWhere.mockResolvedValueOnce(undefined);
 
       const res = await deleteGroupAction({ id: "g1" });
-      expect(res).toEqual({ success: true });
+      expect(res.data).toEqual({ success: true });
     });
 
     it("removes group member", async () => {
@@ -409,7 +413,7 @@ describe("Groups Server Actions", () => {
       mockDeleteWhere.mockResolvedValueOnce(undefined);
 
       const res = await removeGroupMemberAction({ groupId: "g1", memberId: "gm1" });
-      expect(res).toEqual({ success: true });
+      expect(res.data).toEqual({ success: true });
     });
   });
 
@@ -440,9 +444,9 @@ describe("Groups Server Actions", () => {
         }),
       });
 
-      const groups = await getGroupsAction();
-      expect(groups).toHaveLength(1);
-      expect(groups[0].name).toBe("Flatmates");
+      const groups = await getGroupsAction({});
+      expect(groups.data).toHaveLength(1);
+      expect(groups.data![0].name).toBe("Flatmates");
     });
   });
 
@@ -499,9 +503,9 @@ describe("Groups Server Actions", () => {
       });
 
       const details = await getGroupDetailsAction("g1");
-      expect(details.group.name).toBe("Trip");
-      expect(details.members).toHaveLength(1);
-      expect(details.members[0].profiles?.full_name).toBe("User One");
+      expect(details.data!.group.name).toBe("Trip");
+      expect(details.data!.members).toHaveLength(1);
+      expect(details.data!.members[0].profiles?.full_name).toBe("User One");
     });
   });
 
@@ -551,7 +555,7 @@ describe("Groups Server Actions", () => {
       });
 
       const balances = await getGroupBalancesAction("g1");
-      expect(balances).toEqual({
+      expect(balances.data).toEqual({
         gm1: 50, // paid 100, split -50 = +50
         gm2: -50, // paid 0, split -50 = -50
       });
@@ -576,7 +580,7 @@ describe("Groups Server Actions", () => {
       });
 
       const res = await getGroupTransactionCountAction("g1");
-      expect(res).toEqual({ count: 5 });
+      expect(res.data).toEqual({ count: 5 });
     });
   });
 });

@@ -41,7 +41,9 @@ export default function JoinGroupPage() {
             if (!inviteCode) return
 
             try {
-                const data = await getGroupByInviteAction(inviteCode)
+                const res = await getGroupByInviteAction(inviteCode)
+            if (res.error) throw new Error(res.error)
+            const data = res.data
 
                 if (!data || data.length === 0) {
                     setError('Invalid or expired link')
@@ -63,15 +65,18 @@ export default function JoinGroupPage() {
     const handleJoin = async (claimGhostId: string | null = null) => {
         setIsJoining(true)
         try {
-            const data = await joinGroupAction(inviteCode, claimGhostId)
+            const res = await joinGroupAction({ inviteCode, claimGhostMemberId: claimGhostId })
 
-            if (data?.success) {
-                if (data.message === 'Already a member') {
+            if (res.error) throw new Error(res.error)
+            const data = res.data
+            
+            if (res.success) {
+                if (data!.message === 'Already a member') {
                     toast.info('You are already a member of this group')
                 } else {
                     toast.success('Successfully joined the group!')
                 }
-                router.push(`/dashboard/groups/${data.group_id}`)
+                router.push(`/dashboard/groups/${data!.group_id}`)
             } else {
                 throw new Error('Failed to join group')
             }

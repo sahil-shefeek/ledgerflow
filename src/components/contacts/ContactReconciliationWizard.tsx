@@ -136,11 +136,12 @@ export function ContactReconciliationWizard({
           targetUserId,
         })
       } else {
-        await requestGroupGhostMerge({
+        const res = await requestGroupGhostMerge({
           groupId: ghostTarget.groupId,
           ghostMemberId: ghostTarget.ghostMemberId,
           targetUserId,
         })
+        if (res.error) throw new Error(res.error)
       }
 
       toast.success("Ghost member claim submitted! Admin approval requested.")

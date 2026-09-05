@@ -33,6 +33,10 @@ export interface GroupMember {
     ghost_name: string | null
     avatar_url: string | null
     joined_at: string
+    profiles?: {
+        avatar_url: string | null
+        full_name?: string | null
+    } | null
 }
 
 export interface Friendship {

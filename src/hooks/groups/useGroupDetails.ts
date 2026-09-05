@@ -16,8 +16,9 @@ export function useGroupDetails(groupId: string) {
     return useQuery({
         queryKey: ['group', groupId],
         queryFn: async () => {
-            const data = await getGroupDetailsAction(groupId)
-            return data as unknown as GroupDetails
+            const res = await getGroupDetailsAction(groupId)
+            if (res.error) throw new Error(res.error)
+            return res.data as unknown as GroupDetails
         },
         enabled: !!groupId,
     })

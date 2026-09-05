@@ -113,6 +113,7 @@ export async function seedRegisteredUser(options: SeedUserOptions = {}): Promise
     .insert(profiles)
     .values({
       id: data.user.id,
+      fullName: name,
       username: options.username || data.user.id,
       email: data.user.email,
       globalOnboardingStatus: "COMPLETED",
@@ -122,6 +123,7 @@ export async function seedRegisteredUser(options: SeedUserOptions = {}): Promise
     .onConflictDoUpdate({
       target: profiles.id,
       set: {
+        fullName: name,
         globalOnboardingStatus: "COMPLETED",
         personalSetupStatus: "COMPLETED",
         businessSetupStatus: "COMPLETED",

@@ -13,7 +13,9 @@ export function useLinkGhostMember() {
 
     return useMutation({
         mutationFn: async ({ groupId, ghostMemberId, friendUserId }: LinkGhostMemberParams) => {
-            return await linkGhostToFriendAction(groupId, ghostMemberId, friendUserId)
+            const res = await linkGhostToFriendAction({ groupId, ghostMemberId, friendUserId })
+            if (res.error) throw new Error(res.error)
+            return res.data
         },
         onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['group', variables.groupId] })

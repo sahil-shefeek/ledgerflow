@@ -4,9 +4,13 @@ import { db } from "@/db";
 import { groups, groupMembers, transactions, transactionSplits, profiles, contacts, notifications, user as userTable } from "@/db/schema";
 import { eq, and, isNull, count, inArray } from "drizzle-orm";
 import { getSessionUser } from "@/lib/auth-session";
+import { z } from "zod";
+import { rpcAction, rpcActionWithAuth } from "@/lib/action-helpers";
+import { createGroupSchema } from "@/lib/validations/group";
 import { scanGhostMatchesForUser } from "@/lib/services/ghost-auto-matcher";
 
-export async function getGroupByInviteAction(inviteCode: string) {
+const GetGroupByInviteSchema = z.string();
+export const getGroupByInviteAction = rpcAction(GetGroupByInviteSchema, async (inviteCode) => {
   const targetGroup = await db.select().from(groups).where(eq(groups.inviteCode, inviteCode)).limit(1);
   if (targetGroup.length === 0) return [];
   
@@ -34,12 +38,12 @@ export async function getGroupByInviteAction(inviteCode: string) {
       avatar_url: g.avatarUrl ?? null
     })) : null
   }];
-}
+});
 
-export async function joinGroupAction(inviteCode: string, claimGhostMemberId: string | null = null) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
-  const userId = user.id;
+const JoinGroupSchema = z.object({ inviteCode: z.string(), claimGhostMemberId: z.string().nullable().optional() });
+export const joinGroupAction = rpcActionWithAuth(JoinGroupSchema, async ({ inviteCode, claimGhostMemberId }, currentUser) => {
+  const user = { id: currentUser.id };
+  const userId = currentUser.id;
   
   return await db.transaction(async (tx) => {
     // 1. Validate Invite Code
@@ -87,11 +91,12 @@ export async function joinGroupAction(inviteCode: string, claimGhostMemberId: st
     
     return { success: true, group_id: targetGroupId };
   });
-}
+});
 
-export async function linkGhostToFriendAction(groupId: string, ghostMemberId: string, friendUserId: string) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const LinkGhostSchema = z.object({ groupId: z.string(), ghostMemberId: z.string(), friendUserId: z.string() });
+export const linkGhostToFriendAction = rpcActionWithAuth(LinkGhostSchema, async ({ groupId, ghostMemberId, friendUserId }, currentUser) => {
+  const user = { id: currentUser.id };
+  
   const currentUserId = user.id;
   
   return await db.transaction(async (tx) => {
@@ -133,18 +138,10 @@ export async function linkGhostToFriendAction(groupId: string, ghostMemberId: st
       
     return { success: true };
   });
-}
+});
 
-export async function createGroupAction(
-  data: {
-    name: string;
-    type?: string;
-    members?: Array<{ id?: string; name: string; type: "REAL" | "GHOST"; avatar_url?: string | null }>;
-  }
-) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
-  const userId = user.id;
+export const createGroupAction = rpcActionWithAuth(createGroupSchema, async (data, currentUser) => {
+  const userId = currentUser.id;
 
   return await db.transaction(async (tx) => {
     const [insertedGroup] = await tx
@@ -177,7 +174,7 @@ export async function createGroupAction(
       createdAt: insertedGroup.createdAt ? insertedGroup.createdAt.toISOString() : new Date().toISOString(),
     };
   });
-}
+});
 
 async function assertGroupMember(groupId: string, userId: string) {
   const member = await db
@@ -190,9 +187,10 @@ async function assertGroupMember(groupId: string, userId: string) {
   }
 }
 
-export async function updateGroupAction(data: { id: string; name: string }) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const UpdateGroupSchema = z.object({ id: z.string(), name: z.string() });
+export const updateGroupAction = rpcActionWithAuth(UpdateGroupSchema, async (data, currentUser) => {
+  const user = { id: currentUser.id };
+  
   await assertGroupMember(data.id, user.id);
 
   await db
@@ -201,21 +199,23 @@ export async function updateGroupAction(data: { id: string; name: string }) {
     .where(eq(groups.id, data.id));
 
   return { success: true };
-}
+});
 
-export async function deleteGroupAction(data: { id: string }) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const DeleteGroupSchema = z.object({ id: z.string() });
+export const deleteGroupAction = rpcActionWithAuth(DeleteGroupSchema, async (data, currentUser) => {
+  const user = { id: currentUser.id };
+  
   await assertGroupMember(data.id, user.id);
 
   await db.delete(groups).where(eq(groups.id, data.id));
 
   return { success: true };
-}
+});
 
-export async function removeGroupMemberAction(data: { groupId: string; memberId: string }) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const RemoveGroupMemberSchema = z.object({ groupId: z.string(), memberId: z.string() });
+export const removeGroupMemberAction = rpcActionWithAuth(RemoveGroupMemberSchema, async (data, currentUser) => {
+  const user = { id: currentUser.id };
+  
   await assertGroupMember(data.groupId, user.id);
 
   await db.delete(groupMembers).where(
@@ -226,11 +226,12 @@ export async function removeGroupMemberAction(data: { groupId: string; memberId:
   );
 
   return { success: true };
-}
+});
 
-export async function getGroupsAction() {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const GetGroupsSchema = z.any();
+export const getGroupsAction = rpcActionWithAuth(GetGroupsSchema, async (_, currentUser) => {
+  const user = { id: currentUser.id };
+  
 
   const rows = await db
     .select({
@@ -249,11 +250,12 @@ export async function getGroupsAction() {
     invite_code: row.groups.inviteCode,
     created_at: row.groups.createdAt ? row.groups.createdAt.toISOString() : new Date().toISOString(),
   }));
-}
+});
 
-export async function getGroupDetailsAction(groupId: string) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const GetGroupDetailsSchema = z.string();
+export const getGroupDetailsAction = rpcActionWithAuth(GetGroupDetailsSchema, async (groupId, currentUser) => {
+  const user = { id: currentUser.id };
+  
   await assertGroupMember(groupId, user.id);
 
   const groupRows = await db.select().from(groups).where(eq(groups.id, groupId)).limit(1);
@@ -297,11 +299,12 @@ export async function getGroupDetailsAction(groupId: string) {
     },
     members: membersList,
   };
-}
+});
 
-export async function getGroupBalancesAction(groupId: string) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const GetGroupBalancesSchema = z.string();
+export const getGroupBalancesAction = rpcActionWithAuth(GetGroupBalancesSchema, async (groupId, currentUser) => {
+  const user = { id: currentUser.id };
+  
   await assertGroupMember(groupId, user.id);
 
   const membersList = await db
@@ -372,11 +375,12 @@ export async function getGroupBalancesAction(groupId: string) {
   }
 
   return balanceMap;
-}
+});
 
-export async function getGroupTransactionCountAction(groupId: string) {
-  const user = await getSessionUser();
-  if (!user) throw new Error("Unauthorized");
+const GetGroupTransactionCountSchema = z.string();
+export const getGroupTransactionCountAction = rpcActionWithAuth(GetGroupTransactionCountSchema, async (groupId, currentUser) => {
+  const user = { id: currentUser.id };
+  
   await assertGroupMember(groupId, user.id);
 
   const [result] = await db
@@ -385,16 +389,12 @@ export async function getGroupTransactionCountAction(groupId: string) {
     .where(eq(transactions.groupId, groupId));
 
   return { count: result ? result.count : 0 };
-}
+});
 
-export async function claimGroupGhostMemberByToken(
-  inviteToken: string,
-  targetUserId: string
-) {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    throw new Error("Unauthorized");
-  }
+const ClaimGroupGhostMemberSchema = z.object({ inviteToken: z.string(), targetUserId: z.string() });
+export const claimGroupGhostMemberByToken = rpcActionWithAuth(ClaimGroupGhostMemberSchema, async ({ inviteToken, targetUserId }, currentUser) => {
+  const sessionUser = { id: currentUser.id };
+  
   if (sessionUser.id !== targetUserId) {
     throw new Error("Forbidden: Cannot claim ghost member for another user");
   }
@@ -557,31 +557,14 @@ export async function claimGroupGhostMemberByToken(
       targetUserId,
     };
   });
-}
+});
 
-export async function requestGroupGhostMerge(
-  groupIdOrParams: string | { groupId: string; ghostMemberId: string; targetUserId: string },
-  ghostMemberIdParam?: string,
-  targetUserIdParam?: string
-) {
-  let groupId: string;
-  let ghostMemberId: string;
-  let targetUserId: string;
+const RequestGroupGhostMergeSchema = z.object({ groupId: z.string(), ghostMemberId: z.string(), targetUserId: z.string() });
+export const requestGroupGhostMerge = rpcActionWithAuth(RequestGroupGhostMergeSchema, async ({ groupId, ghostMemberId, targetUserId }, currentUser) => {
+  const sessionUser = { id: currentUser.id };
 
-  if (typeof groupIdOrParams === "object" && groupIdOrParams !== null) {
-    groupId = groupIdOrParams.groupId;
-    ghostMemberId = groupIdOrParams.ghostMemberId;
-    targetUserId = groupIdOrParams.targetUserId;
-  } else {
-    groupId = groupIdOrParams;
-    ghostMemberId = ghostMemberIdParam!;
-    targetUserId = targetUserIdParam!;
-  }
 
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    throw new Error("Unauthorized");
-  }
+  
 
   // 1. Target user profile check
   const targetUserRecords = await db
@@ -684,13 +667,12 @@ export async function requestGroupGhostMerge(
     requestId: insertedNotification ? insertedNotification.id : undefined,
     groupId: group.id,
   };
-}
+});
 
-export async function approveGroupGhostMerge(requestId: string) {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    throw new Error("Unauthorized");
-  }
+const ApproveGroupGhostMergeSchema = z.string();
+export const approveGroupGhostMerge = rpcActionWithAuth(ApproveGroupGhostMergeSchema, async (requestId, currentUser) => {
+  const sessionUser = { id: currentUser.id };
+  
 
   // 1. Fetch merge request notification
   const requestRecords = await db
@@ -836,13 +818,12 @@ export async function approveGroupGhostMerge(requestId: string) {
       targetUserId,
     };
   });
-}
+});
 
-export async function rejectGroupGhostMerge(requestId: string) {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    throw new Error("Unauthorized");
-  }
+const RejectGroupGhostMergeSchema = z.string();
+export const rejectGroupGhostMerge = rpcActionWithAuth(RejectGroupGhostMergeSchema, async (requestId, currentUser) => {
+  const sessionUser = { id: currentUser.id };
+  
 
   // 1. Fetch merge request notification
   const requestRecords = await db
@@ -941,15 +922,14 @@ export async function rejectGroupGhostMerge(requestId: string) {
       status: "REJECTED",
     };
   });
-}
+});
 
-export async function triggerGhostAutoMatchingAction() {
-  const sessionUser = await getSessionUser();
-  if (!sessionUser) {
-    throw new Error("Unauthorized");
-  }
+const TriggerGhostAutoMatchingSchema = z.any();
+export const triggerGhostAutoMatchingAction = rpcActionWithAuth(TriggerGhostAutoMatchingSchema, async (_, currentUser) => {
+  const sessionUser = { id: currentUser.id };
+  
   return await scanGhostMatchesForUser(sessionUser.id);
-}
+});
 
 
 

@@ -51,7 +51,8 @@ export function GroupGhostMergeCard({
     setStatus("APPROVED");
     setLoading("approve");
     try {
-      await approveGroupGhostMerge(request.id);
+      const res = await approveGroupGhostMerge(request.id);
+      if (res.error) throw new Error(res.error);
       toast.success(`Approved merge request for ${request.targetUser.name}`);
       onApprove?.(request.id);
     } catch (err: any) {
@@ -68,7 +69,8 @@ export function GroupGhostMergeCard({
     setStatus("REJECTED");
     setLoading("reject");
     try {
-      await rejectGroupGhostMerge(request.id);
+      const res = await rejectGroupGhostMerge(request.id);
+      if (res.error) throw new Error(res.error);
       toast.success(`Rejected merge request for ${request.targetUser.name}`);
       onReject?.(request.id);
     } catch (err: any) {

@@ -99,18 +99,16 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
     it("throws Unauthorized if no session user is present", async () => {
       mockGetSessionUser.mockResolvedValueOnce(null);
 
-      await expect(
-        requestGroupGhostMerge("g-1", "ghost-1", "user-target")
-      ).rejects.toThrow("Unauthorized");
+      const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
+      expect(res.error).toBe("Unauthorized");
     });
 
     it("throws error if target user profile is not found", async () => {
       mockGetSessionUser.mockResolvedValueOnce(makeSessionUser("user-target"));
       mockDbQuerySequence([]); // target user not found
 
-      await expect(
-        requestGroupGhostMerge("g-1", "ghost-1", "user-target")
-      ).rejects.toThrow("Target user profile not found");
+      const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
+      expect(res.error).toBe("Target user profile not found");
     });
 
     it("throws error if group is not found", async () => {
@@ -120,9 +118,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
         [] // group empty
       );
 
-      await expect(
-        requestGroupGhostMerge("g-1", "ghost-1", "user-target")
-      ).rejects.toThrow("Group not found");
+      const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
+      expect(res.error).toBe("Group not found");
     });
 
     it("throws error if ghost member is not found in group", async () => {
@@ -133,9 +130,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
         [] // ghost member empty
       );
 
-      await expect(
-        requestGroupGhostMerge("g-1", "ghost-1", "user-target")
-      ).rejects.toThrow("Ghost member not found");
+      const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
+      expect(res.error).toBe("Ghost member not found");
     });
 
     it("throws error if target user is already a member of the group", async () => {
@@ -147,9 +143,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
         [{ id: "gm-existing", userId: "user-target" }] // target user already member
       );
 
-      await expect(
-        requestGroupGhostMerge("g-1", "ghost-1", "user-target")
-      ).rejects.toThrow("User is already a member of this group");
+      const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
+      expect(res.error).toBe("User is already a member of this group");
     });
 
     it("successfully dispatches merge request notification to group admin", async () => {
@@ -168,7 +163,7 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
       });
       mockInsertValues.mockResolvedValueOnce(undefined);
 
-      const res = await requestGroupGhostMerge("g-1", "ghost-1", "user-target");
+      const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
 
       expect(res).toEqual({
         success: true,

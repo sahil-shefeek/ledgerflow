@@ -64,9 +64,8 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
   it("throws Unauthorized if no session user is present", async () => {
     mockGetSessionUser.mockResolvedValueOnce(null);
 
-    await expect(
-      claimGroupGhostMemberByToken("token-123", "user-claimer")
-    ).rejects.toThrow("Unauthorized");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "token-123", targetUserId: "user-claimer" });
+      expect(res.error).toBe("Unauthorized");
   });
 
   it("throws error if ghost member is not found for given inviteToken", async () => {
@@ -95,17 +94,15 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
       }),
     });
 
-    await expect(
-      claimGroupGhostMemberByToken("invalid-token", "user-claimer")
-    ).rejects.toThrow("Ghost member not found or invalid invite token");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "invalid-token", targetUserId: "user-claimer" });
+      expect(res.error).toBe("Ghost member not found or invalid invite token");
   });
 
   it("throws Forbidden error if session user does not match targetUserId", async () => {
     mockGetSessionUser.mockResolvedValueOnce(makeSessionUser("user-claimer"));
 
-    await expect(
-      claimGroupGhostMemberByToken("ghost-1", "user-victim")
-    ).rejects.toThrow("Forbidden: Cannot claim ghost member for another user");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "ghost-1", targetUserId: "user-victim" });
+      expect(res.error).toBe("Forbidden: Cannot claim ghost member for another user");
   });
 
   it("throws error if target user profile is not found", async () => {
@@ -134,9 +131,8 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
       }),
     });
 
-    await expect(
-      claimGroupGhostMemberByToken("ghost-1", "non-existent-user")
-    ).rejects.toThrow("Target user profile not found");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "ghost-1", targetUserId: "non-existent-user" });
+      expect(res.error).toBe("Target user profile not found");
   });
 
   it("throws error if target user is already a member of the group", async () => {
@@ -179,9 +175,8 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
       }),
     });
 
-    await expect(
-      claimGroupGhostMemberByToken("ghost-1", "user-claimer")
-    ).rejects.toThrow("User is already a member of this group");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "ghost-1", targetUserId: "user-claimer" });
+      expect(res.error).toBe("User is already a member of this group");
   });
 
   it("successfully claims ghost member, updates splits and emits notifications to claimer and admin", async () => {
@@ -238,7 +233,7 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
     });
     mockInsertValues.mockResolvedValue(undefined);
 
-    const res = await claimGroupGhostMemberByToken("ghost-1", "user-claimer");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "ghost-1", targetUserId: "user-claimer" });
 
     expect(mockDb.transaction).toHaveBeenCalled();
     expect(res).toEqual({
@@ -358,7 +353,7 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
     });
     mockInsertValues.mockResolvedValue(undefined);
 
-    const res = await claimGroupGhostMemberByToken("contact-token-abc", "user-admin");
+    const res = await claimGroupGhostMemberByToken({ inviteToken: "contact-token-abc", targetUserId: "user-admin" });
 
     expect(res.success).toBe(true);
     // Notification inserted only once for claimer since admin === claimer

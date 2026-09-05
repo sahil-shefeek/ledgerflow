@@ -62,6 +62,11 @@ describe('formatCurrency', () => {
   it('uses custom symbol when provided', () => {
     expect(formatCurrency(1250, '$')).toBe('$12.50')
   })
+
+  it('formats negative amounts with minus sign before symbol', () => {
+    expect(formatCurrency(-1000)).toBe('-₹10.00')
+    expect(formatCurrency(-1250, '$')).toBe('-$12.50')
+  })
 })
 
 describe('addPaise', () => {

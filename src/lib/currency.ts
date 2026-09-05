@@ -19,9 +19,11 @@ export function paiseToRupees(paise: number): Decimal {
   return new Decimal(paise).dividedBy(100)
 }
 
-/** Format integer paise for display. Returns a string like "₹12.50". */
+/** Format integer paise for display. Returns a string like "₹12.50" or "-₹10.00". */
 export function formatCurrency(paise: number, symbol = '₹'): string {
-  return `${symbol}${paiseToRupees(paise).toFixed(2)}`
+  const isNegative = paise < 0
+  const absRupees = paiseToRupees(Math.abs(paise))
+  return `${isNegative ? '-' : ''}${symbol}${absRupees.toFixed(2)}`
 }
 
 /** Safe integer addition of two paise values. */

@@ -6,8 +6,9 @@ export function useGroups() {
     return useQuery({
         queryKey: ['groups'],
         queryFn: async () => {
-            const data = await getGroupsAction()
-            return data as unknown as Group[]
+            const res = await getGroupsAction({})
+            if (res.error) throw new Error(res.error)
+            return res.data as unknown as Group[]
         }
     })
 }

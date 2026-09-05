@@ -92,8 +92,11 @@ export function GroupSettingsDrawer({ children, groupDetails }: GroupSettingsDra
     const onUpdate = async (values: z.infer<typeof formSchema>) => {
         setIsSubmitting(true)
         try {
-            await updateGroupAction({ id: group.id, name: values.name })
-
+            const res = await updateGroupAction({ id: group.id, name: values.name })
+            if (res.error) {
+                toast.error(res.error)
+                return
+            }
             toast.success('Group updated')
             queryClient.invalidateQueries({ queryKey: ['group', group.id] })
             queryClient.invalidateQueries({ queryKey: ['groups'] })
@@ -110,7 +113,8 @@ export function GroupSettingsDrawer({ children, groupDetails }: GroupSettingsDra
     const checkTransactions = async () => {
         try {
             const res = await getGroupTransactionCountAction(group.id)
-            setTransactionCount(res.count)
+            if (res.error) throw new Error(res.error)
+            setTransactionCount(res.data!.count)
         } catch (error) {
             console.error('Failed to check transactions:', error)
             toast.error('Could not check group transactions')

@@ -18,34 +18,7 @@ import { getDefaultAccount } from '@/lib/account-utils'
 import { AddAccountDrawer } from '@/components/finance/AddAccountDrawer'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { formatCurrency, rupeesToPaise } from '@/lib/currency'
-import { z } from 'zod'
-
-const splitExpenseSchema = z.object({
-    splitType: z.enum(['EQUALLY', 'BY_AMOUNT', 'BY_PERCENTAGE']),
-    shares: z.record(z.string(), z.number()),
-    selectedMembers: z.array(z.string()),
-    totalAmount: z.number()
-}).superRefine((data, ctx) => {
-    const hasNegative = Object.values(data.shares).some(val => val < 0)
-    if (hasNegative) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Split amounts cannot be negative' })
-        return
-    }
-
-    if (data.splitType === 'EQUALLY' && data.selectedMembers.length === 0) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'You must select at least one member to split equally' })
-    } else if (data.splitType === 'BY_AMOUNT') {
-        const total = Object.values(data.shares).reduce((sum, val) => sum + (val || 0), 0)
-        if (Math.abs(data.totalAmount - total) > 0.01) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Custom amounts must sum to the total expense amount' })
-        }
-    } else if (data.splitType === 'BY_PERCENTAGE') {
-        const total = Object.values(data.shares).reduce((sum, val) => sum + (val || 0), 0)
-        if (Math.abs(100 - total) > 0.01) {
-            ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Percentages must add up to exactly 100%' })
-        }
-    }
-})
+import { splitExpenseSchema, splitExpenseStep1Schema } from '@/lib/validations/split-expense'
 
 
 interface SplitExpenseDrawerProps {
@@ -109,16 +82,13 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
     }
 
     const handleNext = () => {
-        if (!numericAmount || numericAmount <= 0) {
-            toast.error('Please enter a valid amount')
-            return
-        }
-        if (!name.trim()) {
-            toast.error('Please enter a description')
-            return
-        }
-        if (!activeAccountId) {
-            toast.error('Please select an account')
+        const validation = splitExpenseStep1Schema.safeParse({
+            amount: numericAmount,
+            name,
+            accountId: activeAccountId,
+        })
+        if (!validation.success) {
+            toast.error(validation.error.issues[0].message)
             return
         }
         setStep(2)
@@ -181,12 +151,12 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
         if (!m) return 'Unknown'
         // If it's me
         if (m.user_id === currentUserId) return 'You'
-        return m.ghost_name || 'Member'
+        return m.profiles?.full_name || m.ghost_name || 'Member'
     }
 
     const getMemberAvatar = (id: string) => {
         const m = memberMap.get(id)
-        return (m as any)?.profiles?.avatar_url || m?.avatar_url
+        return m?.profiles?.avatar_url || m?.avatar_url || undefined
     }
 
     return (
@@ -203,6 +173,9 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                         <div />
                     )}
                     <DrawerTitle>{step === 1 ? 'Add Expense' : 'Split Expense'}</DrawerTitle>
+                    <DrawerDescription className="sr-only">
+                        {step === 1 ? 'Enter expense details' : 'Configure split breakdown'}
+                    </DrawerDescription>
                     <div className="w-9" /> {/* Spacer */}
                 </div>
 
@@ -211,10 +184,12 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                     {step === 1 && (
                         <div className="space-y-6">
                             <div className="text-center space-y-2 py-8">
-                                <Label className="text-muted-foreground">Enter amount</Label>
+                                <Label htmlFor="split-expense-amount" className="text-muted-foreground">Enter amount</Label>
                                 <div className="flex items-center justify-center text-5xl font-bold tracking-tighter">
                                     <span className="text-xl text-muted-foreground mr-1">₹</span>
                                     <Input
+                                        id="split-expense-amount"
+                                        aria-label="Enter amount"
                                         type="number"
                                         className="w-40 text-center border-none shadow-none text-5xl p-0 h-auto focus-visible:ring-0"
                                         placeholder="0"
@@ -226,8 +201,10 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                             </div>
 
                             <div className="space-y-2">
-                                <Label>Expense Name</Label>
+                                <Label htmlFor="split-expense-name">Expense Name</Label>
                                 <Input
+                                    id="split-expense-name"
+                                    aria-label="Expense Name"
                                     placeholder="What's this for?"
                                     value={name}
                                     onChange={e => setName(e.target.value)}
@@ -247,7 +224,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                         </AddAccountDrawer>
                                     </div>
                                 ) : (
-                                    <Select items={accounts?.map((i: any) => ({ value: i.id || i.value || String(i), label: i.name || i.label || String(i) })) || []} value={activeAccountId} onValueChange={(val) => val && setAccountId(val)}>
+                                    <Select items={accounts?.map(acc => ({ value: acc.id, label: `${acc.name} (${acc.type}) - ₹${acc.balance}` })) || []} value={activeAccountId} onValueChange={(val) => val && setAccountId(val)}>
                                         <SelectTrigger>
                                             <SelectValue placeholder="Select account" />
                                         </SelectTrigger>
@@ -284,9 +261,9 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
 
                             <Tabs defaultValue="EQUALLY" value={splitType} onValueChange={(v) => setSplitType(v as SplitType)} className="w-full">
                                 <TabsList className="grid w-full grid-cols-3">
-                                    <TabsTrigger value="EQUALLY">=</TabsTrigger>
-                                    <TabsTrigger value="BY_AMOUNT">1.23</TabsTrigger>
-                                    <TabsTrigger value="BY_PERCENTAGE">%</TabsTrigger>
+                                    <TabsTrigger value="EQUALLY" aria-label="Split equally (=)">=</TabsTrigger>
+                                    <TabsTrigger value="BY_AMOUNT" aria-label="Split by exact amounts (1.23)">1.23</TabsTrigger>
+                                    <TabsTrigger value="BY_PERCENTAGE" aria-label="Split by percentage (%)">%</TabsTrigger>
                                 </TabsList>
 
                                 <TabsContent value="EQUALLY" className="mt-4 space-y-4">
@@ -296,16 +273,30 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                     {members.map(member => {
                                         const isSelected = selectedMembersSet.has(member.id)
                                         const allocation = allocationsMap.get(member.id)
+                                        const memberName = getMemberName(member.id)
 
                                         return (
-                                            <div key={member.id} className="flex items-center justify-between gap-3" onClick={() => toggleMemberSelection(member.id)}>
+                                            <div key={member.id} className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-3">
-                                                    <Checkbox checked={isSelected} onCheckedChange={() => toggleMemberSelection(member.id)} />
-                                                    <Avatar className="h-10 w-10">
-                                                        <AvatarImage src={getMemberAvatar(member.id)} />
-                                                        <AvatarFallback>{getMemberName(member.id).slice(0, 2).toUpperCase()}</AvatarFallback>
-                                                    </Avatar>
-                                                    <div className="font-medium text-sm">{getMemberName(member.id)}</div>
+                                                    <Checkbox
+                                                        id={`split-member-${member.id}`}
+                                                        aria-label={`Select ${memberName}`}
+                                                        checked={isSelected}
+                                                        onCheckedChange={() => toggleMemberSelection(member.id)}
+                                                    />
+                                                    <label
+                                                        htmlFor={`split-member-${member.id}`}
+                                                        className="flex items-center gap-3 cursor-pointer select-none"
+                                                    >
+                                                        <Avatar className="h-10 w-10" aria-hidden="true">
+                                                            <AvatarImage src={getMemberAvatar(member.id)} />
+                                                            <AvatarFallback aria-hidden="true">{memberName.slice(0, 2).toUpperCase()}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="font-medium text-sm">
+                                                            <span className="sr-only">Select </span>
+                                                            {memberName}
+                                                        </div>
+                                                    </label>
                                                 </div>
                                                 <div className="text-sm font-medium">
                                                     {allocation ? formatCurrency(rupeesToPaise(allocation.amountOwed)) : '₹0.00'}
@@ -320,23 +311,24 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                         Enter exact amounts
                                     </div>
                                     {members.map(member => {
-                                        const allocation = allocationsMap.get(member.id)
+                                        const memberName = getMemberName(member.id)
                                         return (
                                             <div key={member.id} className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-10 w-10">
                                                         <AvatarImage src={getMemberAvatar(member.id)} />
-                                                        <AvatarFallback>{getMemberName(member.id).slice(0, 2).toUpperCase()}</AvatarFallback>
+                                                        <AvatarFallback>{memberName.slice(0, 2).toUpperCase()}</AvatarFallback>
                                                     </Avatar>
-                                                    <div className="font-medium text-sm">{getMemberName(member.id)}</div>
+                                                    <div className="font-medium text-sm">{memberName}</div>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <span className="text-muted-foreground text-sm">₹</span>
                                                     <Input
                                                         type="number"
                                                         placeholder="0"
+                                                        aria-label={`Amount for ${memberName}`}
                                                         className="w-24 text-right h-9"
-                                                        value={shares[member.id] || ''}
+                                                        value={shares[member.id] !== undefined ? shares[member.id] : ''}
                                                         onChange={(e) => updateShare(member.id, parseFloat(e.target.value) || 0)}
                                                     />
                                                 </div>
@@ -353,21 +345,23 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
                                         Enter percentages
                                     </div>
                                     {members.map(member => {
+                                        const memberName = getMemberName(member.id)
                                         return (
                                             <div key={member.id} className="flex items-center justify-between gap-3">
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-10 w-10">
                                                         <AvatarImage src={getMemberAvatar(member.id)} />
-                                                        <AvatarFallback>{getMemberName(member.id).slice(0, 2).toUpperCase()}</AvatarFallback>
+                                                        <AvatarFallback>{memberName.slice(0, 2).toUpperCase()}</AvatarFallback>
                                                     </Avatar>
-                                                    <div className="font-medium text-sm">{getMemberName(member.id)}</div>
+                                                    <div className="font-medium text-sm">{memberName}</div>
                                                 </div>
                                                 <div className="flex items-center gap-1">
                                                     <Input
                                                         type="number"
                                                         placeholder="0"
+                                                        aria-label={`Percentage for ${memberName}`}
                                                         className="w-20 text-right h-9"
-                                                        value={shares[member.id] || ''}
+                                                        value={shares[member.id] !== undefined ? shares[member.id] : ''}
                                                         onChange={(e) => updateShare(member.id, parseFloat(e.target.value) || 0)}
                                                     />
                                                     <span className="text-muted-foreground text-sm">%</span>

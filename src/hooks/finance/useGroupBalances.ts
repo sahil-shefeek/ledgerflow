@@ -6,7 +6,9 @@ export function useGroupBalances(groupId: string, members: (GroupMember & { prof
     return useQuery({
         queryKey: ['group-balances', groupId],
         queryFn: async () => {
-            return await getGroupBalancesAction(groupId)
+            const res = await getGroupBalancesAction(groupId)
+            if (res.error) throw new Error(res.error)
+            return res.data
         },
         enabled: !!groupId && members.length > 0,
     })
