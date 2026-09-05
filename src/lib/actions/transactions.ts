@@ -9,7 +9,7 @@ import {
   accounts,
   profiles,
 } from "@/db/schema";
-import { eq, and, desc, or, isNull, sql } from "drizzle-orm";
+import { eq, and, desc, or, isNull, sql, inArray } from "drizzle-orm";
 import { getSignedFlowDelta } from "@/lib/currency";
 import { notifyTransactionDeleted } from "@/lib/domain/notifications";
 import { z } from "zod";
@@ -92,10 +92,32 @@ async function updateContactStats(
   if (transactionDate) {
     updateData.lastTransactionAt = transactionDate;
   }
-  await tx
+  
+  const [updated] = await tx
     .update(contacts)
     .set(updateData)
-    .where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)));
+    .where(and(eq(contacts.id, contactId), eq(contacts.userId, userId)))
+    .returning();
+
+  if (updated && updated.linkedUserId) {
+    const reciprocalContact = await tx.query.contacts.findFirst({
+      where: and(eq(contacts.userId, updated.linkedUserId), eq(contacts.linkedUserId, userId))
+    });
+    
+    if (reciprocalContact) {
+      const reciprocalData: any = {
+        netBalance: sql`COALESCE(${contacts.netBalance}, 0) + ${String(-delta)}`,
+        transactionCount: sql`COALESCE(${contacts.transactionCount}, 0) + ${String(countDelta)}`,
+      };
+      if (transactionDate) {
+        reciprocalData.lastTransactionAt = transactionDate;
+      }
+      await tx
+        .update(contacts)
+        .set(reciprocalData)
+        .where(eq(contacts.id, reciprocalContact.id));
+    }
+  }
 }
 
 // Mapper to strongly typed `TransactionWithJoins`
@@ -219,7 +241,21 @@ export const getTransactionsAction = rpcActionWithAuth(
     const whereConditions = [isNull(transactions.deletedAt)];
 
     if (filters?.contactId) {
-      whereConditions.push(eq(transactions.contactId, filters.contactId));
+      const contactRecord = await db.query.contacts.findFirst({
+        where: and(eq(contacts.id, filters.contactId), eq(contacts.userId, currentUser.id))
+      });
+      if (contactRecord?.linkedUserId) {
+        const reciprocal = await db.query.contacts.findFirst({
+          where: and(eq(contacts.userId, contactRecord.linkedUserId), eq(contacts.linkedUserId, currentUser.id))
+        });
+        if (reciprocal) {
+          whereConditions.push(inArray(transactions.contactId, [filters.contactId, reciprocal.id]));
+        } else {
+          whereConditions.push(eq(transactions.contactId, filters.contactId));
+        }
+      } else {
+        whereConditions.push(eq(transactions.contactId, filters.contactId));
+      }
     } else if (filters?.groupId) {
       whereConditions.push(eq(transactions.groupId, filters.groupId));
     } else if (filters?.mode) {
@@ -279,12 +315,21 @@ export const getUnifiedTransactionsAction = rpcActionWithAuth(
   async (filters, currentUser): Promise<TransactionWithJoins[]> => {
     const limit = filters?.limit ?? 100;
     const offset = filters?.offset ?? 0;
+    
+    const myReciprocalContacts = await db.select({ id: contacts.id }).from(contacts).where(eq(contacts.linkedUserId, currentUser.id));
+    const reciprocalContactIds = myReciprocalContacts.map(c => c.id);
+    
+    const baseConditions = [
+      eq(transactions.userId, currentUser.id),
+      eq(transactions.payerId, currentUser.id)
+    ];
+    if (reciprocalContactIds.length > 0) {
+      baseConditions.push(inArray(transactions.contactId, reciprocalContactIds));
+    }
+    
     const rows = await db.query.transactions.findMany({
       where: and(
-        or(
-          eq(transactions.userId, currentUser.id),
-          eq(transactions.payerId, currentUser.id)
-        ),
+        or(...baseConditions),
         isNull(transactions.deletedAt)
       ),
       orderBy: [desc(transactions.date)],

@@ -6,8 +6,9 @@ export function useContactTransactions(contactId: string) {
     return useQuery({
         queryKey: ['transactions', 'contact', contactId],
         queryFn: async () => {
-            const data = await getTransactionsAction({ contactId })
-            return data as unknown as TransactionWithJoins[]
+            const result = await getTransactionsAction({ contactId })
+            if (result.error) throw new Error(result.error)
+            return (result.data || []) as TransactionWithJoins[]
         },
         enabled: !!contactId,
     })

@@ -259,17 +259,23 @@ export default function PersonDetailsPage() {
             </div>
 
             <PersonalTransactionDrawer
-                initialData={{ contact_id: contactId }}
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                initialData={editingTransaction || { contact_id: contactId }}
                 hideContactSelect={true}
+                hideTrigger={true}
             />
 
             <TransactionDetailsDrawer
                 transaction={selectedTransaction}
                 open={detailsOpen}
                 onOpenChange={setDetailsOpen}
-                onEdit={() => { }} // No-op or remove prop from component definition if possible
+                onEdit={(tx) => {
+                    setDetailsOpen(false)
+                    setEditingTransaction(tx)
+                    setEditOpen(true)
+                }}
             />
-
 
             <AddPersonDrawer
                 open={personEditOpen}

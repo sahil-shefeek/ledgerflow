@@ -4,6 +4,7 @@ import { Icon } from "@/components/ui/icon";
 import { ReceiptIcon } from "@hugeicons/core-free-icons";
 import { formatTransactionDate } from '@/lib/date-utils'
 import { TransactionDetailsDrawer } from '@/components/finance/TransactionDetailsDrawer'
+import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -20,6 +21,8 @@ interface GroupTransactionListProps {
 export function GroupTransactionList({ groupId, currentUserId }: GroupTransactionListProps) {
     const [selectedTransaction, setSelectedTransaction] = useState<TransactionWithJoins | null>(null)
     const [detailsOpen, setDetailsOpen] = useState(false)
+    const [editingTransaction, setEditingTransaction] = useState<TransactionWithJoins | null>(null)
+    const [editOpen, setEditOpen] = useState(false)
 
     // Use our updated hook with groupId filter
     const { data, isLoading } = useTransactions({ groupId, mode: 'PERSONAL' })
@@ -133,7 +136,18 @@ export function GroupTransactionList({ groupId, currentUserId }: GroupTransactio
                 transaction={selectedTransaction}
                 open={detailsOpen}
                 onOpenChange={setDetailsOpen}
-                onEdit={() => { }}
+                onEdit={(tx) => {
+                    setDetailsOpen(false)
+                    setEditingTransaction(tx)
+                    setEditOpen(true)
+                }}
+            />
+
+            <PersonalTransactionDrawer
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                initialData={editingTransaction || { group_id: groupId }}
+                hideTrigger={true}
             />
         </>
     )

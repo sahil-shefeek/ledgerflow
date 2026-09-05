@@ -249,17 +249,23 @@ export default function LedgerPage() {
                     </div>
                 )}
             </div>
-
             <BusinessTransactionDrawer
-                initialData={{ contact_id: contactId }}
+                open={editOpen}
+                onOpenChange={setEditOpen}
+                initialData={editingTransaction || { contact_id: contactId }}
                 hideContactSelect={true}
+                hideTrigger={true}
             />
 
             <TransactionDetailsDrawer
                 transaction={selectedTransaction}
                 open={detailsOpen}
                 onOpenChange={setDetailsOpen}
-                onEdit={() => { }}
+                onEdit={(tx) => {
+                    setDetailsOpen(false)
+                    setEditingTransaction(tx)
+                    setEditOpen(true)
+                }}
             />
 
             <AddBusinessContactDrawer
