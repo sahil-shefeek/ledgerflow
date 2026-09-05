@@ -1,22 +1,9 @@
-import { test, expect } from '../helpers/test-fixtures';
+import { test, expect, ensurePersonalDashboard } from '../helpers/test-fixtures';
 import { seedRegisteredUser, seedBankAccount, authenticateContext } from '../helpers/test-fixtures';
-import type { Page } from '@playwright/test';
 import { db } from '@/db';
 import { categories, accounts, transactions } from '@/db/schema/financial';
 import crypto from 'crypto';
-import { eq } from 'drizzle-orm';
-
-async function ensurePersonalDashboard(page: Page) {
-    await page.goto('/dashboard');
-    const personalHeading = page.getByTestId('personal-heading');
-    const switchBtn = page.getByRole('button', { name: /Switch to Personal/i });
-    await expect(personalHeading.or(switchBtn)).toBeVisible();
-
-    if (await switchBtn.isVisible()) {
-        await switchBtn.click();
-    }
-    await expect(personalHeading).toBeVisible();
-}
+import { eq, and } from 'drizzle-orm';
 
 test.describe('Bank & Account Balance Updates', () => {
     let userA: Awaited<ReturnType<typeof seedRegisteredUser>>;
@@ -24,7 +11,7 @@ test.describe('Bank & Account Balance Updates', () => {
     let cashAccountId: string;
     let expenseCategoryId: string;
 
-    test.beforeEach(async () => {
+    test.beforeEach(async ({ userAContext, baseURL }) => {
         userA = await seedRegisteredUser();
 
         // 1. Record initial bank account balance in test fixture: 1,000,000 paise = ₹10,000.00
@@ -52,18 +39,17 @@ test.describe('Bank & Account Balance Updates', () => {
             active: true,
         }).returning();
         expenseCategoryId = cat.id;
-    });
 
-    test('should accurately decrement bank account balance on expense creation, recalculate on edit, and revert on delete', async ({
-        userAPage,
-        userAContext,
-        baseURL,
-    }) => {
+        // Common context setup for userA
         await authenticateContext(userAContext, userA.sessionToken, baseURL, userA.cookies);
         await userAContext.addInitScript(() => {
             localStorage.setItem('app-preference', JSON.stringify({ state: { mode: 'personal' }, version: 0 }));
         });
+    });
 
+    test('should accurately decrement bank account balance on expense creation, recalculate on edit, and revert on delete', async ({
+        userAPage,
+    }) => {
         await ensurePersonalDashboard(userAPage);
 
         const accountsCard = userAPage.getByTestId('accounts-card');
@@ -84,13 +70,13 @@ test.describe('Bank & Account Balance Updates', () => {
         await expect(addDialog.getByRole('heading', { name: /Add Expense \/ Income/i })).toBeVisible();
 
         await addDialog.getByRole('tab', { name: /Expense/i }).click();
-        await addDialog.locator('input[name="amount"]').fill('1500');
+        await addDialog.getByLabel(/Amount/i).fill('1500');
 
         await addDialog.getByTestId(`category-${expenseCategoryId}`).click();
         await addDialog.getByTestId(`account-${bankAccountId}`).click();
 
-        await addDialog.locator('input[name="name"]').fill('Ergonomic Office Chair');
-        await addDialog.locator('input[name="note"]').fill('Desk setup upgrade');
+        await addDialog.getByLabel(/^Name/i).fill('Ergonomic Office Chair');
+        await addDialog.getByLabel(/Note/i).fill('Desk setup upgrade');
 
         await addDialog.getByRole('button', { name: /Save Transaction/i }).click();
 
@@ -111,6 +97,11 @@ test.describe('Bank & Account Balance Updates', () => {
         });
         expect(Number(dbBank?.balance)).toBe(850000);
 
+        const createdTx = await db.query.transactions.findFirst({
+            where: and(eq(transactions.userId, userA.user.id), eq(transactions.name, 'Ergonomic Office Chair')),
+        });
+        expect(createdTx).toBeDefined();
+
         // 3. Edit Expense: Change amount from ₹1,500 to ₹2,200
         await recentTransactionsCard.getByText('Ergonomic Office Chair').click();
 
@@ -127,9 +118,8 @@ test.describe('Bank & Account Balance Updates', () => {
         await expect(editDialog).toBeVisible();
         await expect(editDialog.getByRole('heading', { name: /Edit Transaction/i })).toBeVisible();
 
-        // Fill updated amount and note
-        await editDialog.locator('input[name="amount"]').fill('2200');
-        await editDialog.locator('input[name="name"]').fill('Ergonomic Office Chair Pro');
+        await editDialog.getByLabel(/Amount/i).fill('2200');
+        await editDialog.getByLabel(/^Name/i).fill('Ergonomic Office Chair Pro');
 
         await editDialog.getByRole('button', { name: /Update Transaction/i }).click();
 
@@ -169,23 +159,164 @@ test.describe('Bank & Account Balance Updates', () => {
         });
         expect(Number(dbBank?.balance)).toBe(1000000);
 
-        // Assert transaction is soft-deleted in DB
+        // Assert specific transaction record is soft-deleted in DB
         const deletedDbTx = await db.query.transactions.findFirst({
-            where: eq(transactions.userId, userA.user.id),
+            where: eq(transactions.id, createdTx!.id),
         });
         expect(deletedDbTx?.deletedAt).not.toBeNull();
     });
 
+    test('should accurately decrement cash account balance on personal expense creation, recalculate on edit, and revert on delete', async ({
+        userAPage,
+    }) => {
+        await ensurePersonalDashboard(userAPage);
+
+        const accountsCard = userAPage.getByTestId('accounts-card');
+        await expect(accountsCard).toBeVisible();
+
+        const cashAccountItem = accountsCard.getByTestId('account-item').filter({ hasText: 'Pocket Cash Wallet' });
+        await expect(cashAccountItem).toBeVisible();
+
+        // Initial Cash balance: ₹5,000
+        await expect(cashAccountItem.getByTestId('account-balance')).toContainText('₹5,000');
+
+        // Create Expense on Cash: ₹1,200
+        const addBtn = userAPage.getByTestId('fab-add-transaction');
+        await addBtn.click();
+
+        const addDialog = userAPage.locator('[data-testid="personal-transaction-drawer"][data-open]');
+        await expect(addDialog).toBeVisible();
+
+        await addDialog.getByRole('tab', { name: /Expense/i }).click();
+        await addDialog.getByLabel(/Amount/i).fill('1200');
+
+        await addDialog.getByTestId(`category-${expenseCategoryId}`).click();
+        await addDialog.getByTestId(`account-${cashAccountId}`).click();
+
+        await addDialog.getByLabel(/^Name/i).fill('Stationery Notebooks');
+        await addDialog.getByRole('button', { name: /Save Transaction/i }).click();
+
+        await expect(userAPage.getByText('Transaction saved')).toBeVisible();
+        await expect(addDialog).toBeHidden();
+
+        // Assert Cash balance decrements: ₹5,000 - ₹1,200 = ₹3,800
+        await expect(cashAccountItem.getByTestId('account-balance')).toContainText('₹3,800');
+
+        let dbCash = await db.query.accounts.findFirst({ where: eq(accounts.id, cashAccountId) });
+        expect(Number(dbCash?.balance)).toBe(380000);
+
+        // Edit Expense amount: ₹1,200 -> ₹1,600
+        const recentTransactionsCard = userAPage.getByTestId('personal-transactions-card');
+        await recentTransactionsCard.getByText('Stationery Notebooks').click();
+
+        const detailsDrawer = userAPage.getByTestId('transaction-details-drawer');
+        await expect(detailsDrawer).toBeVisible();
+        await detailsDrawer.getByTestId('edit-transaction-button').click();
+        await expect(detailsDrawer).toBeHidden();
+
+        const editDialog = userAPage.locator('[data-testid="personal-transaction-drawer"][data-open]');
+        await expect(editDialog).toBeVisible();
+
+        await editDialog.getByLabel(/Amount/i).fill('1600');
+        await editDialog.getByRole('button', { name: /Update Transaction/i }).click();
+
+        await expect(userAPage.getByText('Transaction updated')).toBeVisible();
+        await expect(editDialog).toBeHidden();
+
+        // Assert Cash balance recalculates: ₹5,000 - ₹1,600 = ₹3,400
+        await expect(cashAccountItem.getByTestId('account-balance')).toContainText('₹3,400');
+        dbCash = await db.query.accounts.findFirst({ where: eq(accounts.id, cashAccountId) });
+        expect(Number(dbCash?.balance)).toBe(340000);
+
+        // Delete Expense: Reverts back to ₹5,000
+        await recentTransactionsCard.getByText('Stationery Notebooks').click();
+        await expect(detailsDrawer).toBeVisible();
+        await detailsDrawer.getByTestId('delete-transaction-button').click();
+
+        await expect(userAPage.getByText('Transaction deleted')).toBeVisible();
+        await expect(detailsDrawer).toBeHidden();
+
+        await expect(cashAccountItem.getByTestId('account-balance')).toContainText('₹5,000');
+        dbCash = await db.query.accounts.findFirst({ where: eq(accounts.id, cashAccountId) });
+        expect(Number(dbCash?.balance)).toBe(500000);
+    });
+
+    test('should accurately increment bank account balance on personal income creation, recalculate on edit, and revert on delete', async ({
+        userAPage,
+    }) => {
+        await ensurePersonalDashboard(userAPage);
+
+        const accountsCard = userAPage.getByTestId('accounts-card');
+        await expect(accountsCard).toBeVisible();
+
+        const bankAccountItem = accountsCard.getByTestId('account-item').filter({ hasText: 'HDFC Salary Bank' });
+        await expect(bankAccountItem).toBeVisible();
+
+        // Initial Bank balance: ₹10,000
+        await expect(bankAccountItem.getByTestId('account-balance')).toContainText('₹10,000');
+
+        // Create Income on Bank: ₹8,000
+        const addBtn = userAPage.getByTestId('fab-add-transaction');
+        await addBtn.click();
+
+        const addDialog = userAPage.locator('[data-testid="personal-transaction-drawer"][data-open]');
+        await expect(addDialog).toBeVisible();
+
+        await addDialog.getByRole('tab', { name: /Income/i }).click();
+        await addDialog.getByLabel(/Amount/i).fill('8000');
+        await addDialog.getByTestId(`account-${bankAccountId}`).click();
+
+        await addDialog.getByLabel(/^Name/i).fill('Monthly Salary Direct Deposit');
+        await addDialog.getByRole('button', { name: /Save Transaction/i }).click();
+
+        await expect(userAPage.getByText('Transaction saved')).toBeVisible();
+        await expect(addDialog).toBeHidden();
+
+        // Assert Bank balance increments: ₹10,000 + ₹8,000 = ₹18,000
+        await expect(bankAccountItem.getByTestId('account-balance')).toContainText('₹18,000');
+
+        let dbBank = await db.query.accounts.findFirst({ where: eq(accounts.id, bankAccountId) });
+        expect(Number(dbBank?.balance)).toBe(1800000);
+
+        // Edit Income: ₹8,000 -> ₹10,000
+        const recentTransactionsCard = userAPage.getByTestId('personal-transactions-card');
+        await recentTransactionsCard.getByText('Monthly Salary Direct Deposit').click();
+
+        const detailsDrawer = userAPage.getByTestId('transaction-details-drawer');
+        await expect(detailsDrawer).toBeVisible();
+        await detailsDrawer.getByTestId('edit-transaction-button').click();
+        await expect(detailsDrawer).toBeHidden();
+
+        const editDialog = userAPage.locator('[data-testid="personal-transaction-drawer"][data-open]');
+        await expect(editDialog).toBeVisible();
+
+        await editDialog.getByLabel(/Amount/i).fill('10000');
+        await editDialog.getByRole('button', { name: /Update Transaction/i }).click();
+
+        await expect(userAPage.getByText('Transaction updated')).toBeVisible();
+        await expect(editDialog).toBeHidden();
+
+        // Assert Bank balance recalculates: ₹10,000 + ₹10,000 = ₹20,000
+        await expect(bankAccountItem.getByTestId('account-balance')).toContainText('₹20,000');
+        dbBank = await db.query.accounts.findFirst({ where: eq(accounts.id, bankAccountId) });
+        expect(Number(dbBank?.balance)).toBe(2000000);
+
+        // Delete Income: Reverts to initial ₹10,000
+        await recentTransactionsCard.getByText('Monthly Salary Direct Deposit').click();
+        await expect(detailsDrawer).toBeVisible();
+        await detailsDrawer.getByTestId('delete-transaction-button').click();
+
+        await expect(userAPage.getByText('Transaction deleted')).toBeVisible();
+        await expect(detailsDrawer).toBeHidden();
+
+        await expect(bankAccountItem.getByTestId('account-balance')).toContainText('₹10,000');
+        dbBank = await db.query.accounts.findFirst({ where: eq(accounts.id, bankAccountId) });
+        expect(Number(dbBank?.balance)).toBe(1000000);
+    });
+
     test('should accurately increment cash account balance on personal income creation, recalculate on edit, and revert on delete', async ({
         userAPage,
-        userAContext,
-        baseURL,
     }) => {
-        await authenticateContext(userAContext, userA.sessionToken, baseURL, userA.cookies);
-        await userAContext.addInitScript(() => {
-            localStorage.setItem('app-preference', JSON.stringify({ state: { mode: 'personal' }, version: 0 }));
-        });
-
         await ensurePersonalDashboard(userAPage);
 
         const accountsCard = userAPage.getByTestId('accounts-card');
@@ -206,12 +337,12 @@ test.describe('Bank & Account Balance Updates', () => {
         await expect(addDialog.getByRole('heading', { name: /Add Expense \/ Income/i })).toBeVisible();
 
         await addDialog.getByRole('tab', { name: /Income/i }).click();
-        await addDialog.locator('input[name="amount"]').fill('3000');
+        await addDialog.getByLabel(/Amount/i).fill('3000');
 
         await addDialog.getByTestId(`account-${cashAccountId}`).click();
 
-        await addDialog.locator('input[name="name"]').fill('Client Cash Tip');
-        await addDialog.locator('input[name="note"]').fill('Bonus payout');
+        await addDialog.getByLabel(/^Name/i).fill('Client Cash Tip');
+        await addDialog.getByLabel(/Note/i).fill('Bonus payout');
 
         await addDialog.getByRole('button', { name: /Save Transaction/i }).click();
 
@@ -245,8 +376,8 @@ test.describe('Bank & Account Balance Updates', () => {
         const editDialog = userAPage.locator('[data-testid="personal-transaction-drawer"][data-open]');
         await expect(editDialog).toBeVisible();
 
-        await editDialog.locator('input[name="amount"]').fill('4500');
-        await editDialog.locator('input[name="name"]').fill('Client Cash Tip Revised');
+        await editDialog.getByLabel(/Amount/i).fill('4500');
+        await editDialog.getByLabel(/^Name/i).fill('Client Cash Tip Revised');
 
         await editDialog.getByRole('button', { name: /Update Transaction/i }).click();
 
@@ -286,14 +417,7 @@ test.describe('Bank & Account Balance Updates', () => {
 
     test('should accurately update both accounts when transferring an expense between bank and cash accounts during edit', async ({
         userAPage,
-        userAContext,
-        baseURL,
     }) => {
-        await authenticateContext(userAContext, userA.sessionToken, baseURL, userA.cookies);
-        await userAContext.addInitScript(() => {
-            localStorage.setItem('app-preference', JSON.stringify({ state: { mode: 'personal' }, version: 0 }));
-        });
-
         await ensurePersonalDashboard(userAPage);
 
         const accountsCard = userAPage.getByTestId('accounts-card');
@@ -314,10 +438,10 @@ test.describe('Bank & Account Balance Updates', () => {
         await expect(addDialog).toBeVisible();
 
         await addDialog.getByRole('tab', { name: /Expense/i }).click();
-        await addDialog.locator('input[name="amount"]').fill('2000');
+        await addDialog.getByLabel(/Amount/i).fill('2000');
         await addDialog.getByTestId(`category-${expenseCategoryId}`).click();
         await addDialog.getByTestId(`account-${bankAccountId}`).click();
-        await addDialog.locator('input[name="name"]').fill('Hardware Monitor');
+        await addDialog.getByLabel(/^Name/i).fill('Hardware Monitor');
 
         await addDialog.getByRole('button', { name: /Save Transaction/i }).click();
         await expect(userAPage.getByText('Transaction saved')).toBeVisible();
@@ -347,8 +471,8 @@ test.describe('Bank & Account Balance Updates', () => {
 
         // Switch to Cash Wallet
         await editDialog.getByTestId(`account-${cashAccountId}`).click();
-        await editDialog.locator('input[name="amount"]').fill('2500');
-        await editDialog.locator('input[name="name"]').fill('Hardware Monitor 4K');
+        await editDialog.getByLabel(/Amount/i).fill('2500');
+        await editDialog.getByLabel(/^Name/i).fill('Hardware Monitor 4K');
 
         await editDialog.getByRole('button', { name: /Update Transaction/i }).click();
         await expect(userAPage.getByText('Transaction updated')).toBeVisible();

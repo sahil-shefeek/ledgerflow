@@ -633,4 +633,16 @@ test.afterEach(async () => {
   await cleanupTestData();
 });
 
+export async function ensurePersonalDashboard(page: Page) {
+  await page.goto('/dashboard');
+  const personalHeading = page.getByTestId('personal-heading');
+  const switchBtn = page.getByRole('button', { name: /Switch to Personal/i });
+  await expect(personalHeading.or(switchBtn)).toBeVisible();
+
+  if (await switchBtn.isVisible()) {
+    await switchBtn.click();
+  }
+  await expect(personalHeading).toBeVisible();
+}
+
 export { expect };
