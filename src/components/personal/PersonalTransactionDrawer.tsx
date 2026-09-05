@@ -382,7 +382,7 @@ export function PersonalTransactionDrawer({
                                                                 aria-label={acc.name}
                                                                 className="h-9 px-3 border border-input data-pressed:bg-primary data-pressed:text-primary-foreground"
                                                             >
-                                                                {acc.name} (₹{acc.balance})
+                                                                {acc.name} (₹{paiseToRupees(acc.balance).toNumber().toLocaleString()})
                                                             </ToggleGroupItem>
                                                         ))}
                                                     </ToggleGroup>

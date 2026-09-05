@@ -19,7 +19,7 @@ export function AccountsList() {
     const { data: accounts, isLoading } = useAccounts()
 
     return (
-        <Card>
+        <Card data-testid="accounts-card">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle>Accounts</CardTitle>
                 <AddAccountDrawer>
@@ -35,17 +35,17 @@ export function AccountsList() {
                     accounts!.map((account) => {
                         const TypeIcon = ICONS[account.type] || CreditCardIcon
                         return (
-                            <div key={account.id} className="flex items-center justify-between">
+                            <div key={account.id} data-testid="account-item" className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
                                     <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted text-muted-foreground">
                                         <Icon icon={TypeIcon} className="h-5 w-5" />
                                     </div>
                                     <div>
-                                        <p className="text-sm font-medium leading-none">{account.name}</p>
+                                        <p data-testid="account-name" className="text-sm font-medium leading-none">{account.name}</p>
                                         <p className="text-xs text-muted-foreground mt-1">{account.type}</p>
                                     </div>
                                 </div>
-                                <div className="font-medium">
+                                <div data-testid="account-balance" className="font-medium">
                                     ₹{paiseToRupees(account.balance).toNumber().toLocaleString()}
                                 </div>
                             </div>
