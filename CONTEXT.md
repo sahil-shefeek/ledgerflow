@@ -66,3 +66,6 @@ A browser-specific device registration (containing an endpoint and VAPID auth ke
 
 ### Transaction Category
 A user-defined classification (Income or Expense) used to group and track personal or business transactions. Categories dictate the visual representation of transactions (via icons) and form the basis for budgeting and analytics.
+
+### Unfriending and Ledger Detachment
+The process of severing a mutual `Friend` relationship between two `Registered Profiles`. To maintain transaction integrity, any shared transactions previously visible via the connection are cloned for the non-owning user (with reversed flow) and linked to their local contact record. The contact records on both sides are then unlinked (reverting them back to `Unregistered Contacts`), retaining their original names, ensuring both users maintain an independent, immutable historical ledger.
