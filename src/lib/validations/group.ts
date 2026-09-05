@@ -9,6 +9,6 @@ export const groupMemberSchema = z.object({
 
 export const createGroupSchema = z.object({
   name: z.string().trim().min(1, "Group name cannot be empty").max(100, "Group name is too long"),
-  type: z.enum(["GENERAL", "TRIP", "HOME", "COUPLE", "OTHER"]),
+  type: z.string().optional(),
   members: z.array(groupMemberSchema).optional(),
 });
