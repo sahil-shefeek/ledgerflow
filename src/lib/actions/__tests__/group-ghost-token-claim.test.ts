@@ -236,7 +236,7 @@ describe("claimGroupGhostMemberByToken Server Action", () => {
     const res = await claimGroupGhostMemberByToken({ inviteToken: "ghost-1", targetUserId: "user-claimer" });
 
     expect(mockDb.transaction).toHaveBeenCalled();
-    expect(res).toEqual({
+    expect(res.data).toEqual({
       success: true,
       groupId: "g-1",
       claimedMemberId: "ghost-1",

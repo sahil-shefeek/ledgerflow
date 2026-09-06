@@ -165,7 +165,7 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
 
       const res = await requestGroupGhostMerge({ groupId: "g-1", ghostMemberId: "ghost-1", targetUserId: "user-target" });
 
-      expect(res).toEqual({
+      expect(res.data).toEqual({
         success: true,
         requestId: insertedReqId,
         groupId: "g-1",
@@ -191,18 +191,16 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
     it("throws Unauthorized if no session user is present", async () => {
       mockGetSessionUser.mockResolvedValueOnce(null);
 
-      await expect(approveGroupGhostMerge("req-123")).rejects.toThrow(
-        "Unauthorized"
-      );
+      const res = await approveGroupGhostMerge("req-123");
+      expect(res.error).toBe("Unauthorized");
     });
 
     it("throws error if merge request notification is not found", async () => {
       mockGetSessionUser.mockResolvedValueOnce(makeSessionUser("user-admin"));
       mockDbQuerySequence([]); // request notification not found
 
-      await expect(approveGroupGhostMerge("invalid-req")).rejects.toThrow(
-        "Merge request not found"
-      );
+      const res = await approveGroupGhostMerge("invalid-req");
+      expect(res.error).toBe("Merge request not found");
     });
 
     it("throws error if caller is not the group admin", async () => {
@@ -225,7 +223,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
         [{ id: "g-1", createdBy: "user-admin", name: "Ski Trip" }] // group query
       );
 
-      await expect(approveGroupGhostMerge("req-123")).rejects.toThrow(
+      const res = await approveGroupGhostMerge("req-123");
+      expect(res.error).toBe(
         "Forbidden: Only group admin can approve merge requests"
       );
     });
@@ -247,7 +246,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
 
       mockDbQuerySequence([requestNotif]);
 
-      await expect(approveGroupGhostMerge("req-123")).rejects.toThrow(
+      const res = await approveGroupGhostMerge("req-123");
+      expect(res.error).toBe(
         "Merge request has already been processed"
       );
     });
@@ -293,7 +293,7 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
       const res = await approveGroupGhostMerge("req-123");
 
       expect(mockDb.transaction).toHaveBeenCalled();
-      expect(res).toEqual({
+      expect(res.data).toEqual({
         success: true,
         requestId: "req-123",
         groupId: "g-1",
@@ -362,9 +362,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
       // Inside transaction: ghost member query returns empty (already claimed / not found)
       mockTxQuerySequence([]);
 
-      await expect(approveGroupGhostMerge("req-123")).rejects.toThrow(
-        "Ghost member not found or already claimed"
-      );
+      const res = await approveGroupGhostMerge("req-123");
+      expect(res.error).toBe("Ghost member not found or already claimed");
     });
 
     it("throws error if target user is already a member of the group inside transaction", async () => {
@@ -397,9 +396,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
       // Inside transaction: ghost member found, but target user already member
       mockTxQuerySequence([ghostMember], [{ id: "gm-existing", userId: "user-target" }]);
 
-      await expect(approveGroupGhostMerge("req-123")).rejects.toThrow(
-        "Target user is already a member of this group"
-      );
+      const res = await approveGroupGhostMerge("req-123");
+      expect(res.error).toBe("Target user is already a member of this group");
     });
   });
 
@@ -407,9 +405,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
     it("throws Unauthorized if no session user is present", async () => {
       mockGetSessionUser.mockResolvedValueOnce(null);
 
-      await expect(rejectGroupGhostMerge("req-123")).rejects.toThrow(
-        "Unauthorized"
-      );
+      const res = await rejectGroupGhostMerge("req-123");
+      expect(res.error).toBe("Unauthorized");
     });
 
     it("throws error if caller is not group admin", async () => {
@@ -432,7 +429,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
         [{ id: "g-1", createdBy: "user-admin", name: "Beach Trip" }]
       );
 
-      await expect(rejectGroupGhostMerge("req-123")).rejects.toThrow(
+      const res = await rejectGroupGhostMerge("req-123");
+      expect(res.error).toBe(
         "Forbidden: Only group admin can reject merge requests"
       );
     });
@@ -467,7 +465,7 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
 
       const res = await rejectGroupGhostMerge("req-123");
 
-      expect(res).toEqual({
+      expect(res.data).toEqual({
         success: true,
         requestId: "req-123",
         status: "REJECTED",
@@ -531,7 +529,7 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
 
       const res = await rejectGroupGhostMerge("req-123");
 
-      expect(res).toEqual({
+      expect(res.data).toEqual({
         success: true,
         requestId: "req-123",
         status: "REJECTED",
@@ -546,18 +544,16 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
       mockGetSessionUser.mockResolvedValueOnce(makeSessionUser("user-admin"));
       mockDbQuerySequence([]);
 
-      await expect(rejectGroupGhostMerge("invalid-req")).rejects.toThrow(
-        "Merge request not found"
-      );
+      const res = await rejectGroupGhostMerge("invalid-req");
+      expect(res.error).toBe("Merge request not found");
     });
 
     it("throws error if merge request type is invalid", async () => {
       mockGetSessionUser.mockResolvedValueOnce(makeSessionUser("user-admin"));
       mockDbQuerySequence([{ id: "req-123", type: "OTHER_NOTIFICATION" }]);
 
-      await expect(rejectGroupGhostMerge("req-123")).rejects.toThrow(
-        "Invalid merge request"
-      );
+      const res = await rejectGroupGhostMerge("req-123");
+      expect(res.error).toBe("Invalid merge request");
     });
 
     it("throws error if merge request has already been approved", async () => {
@@ -583,7 +579,8 @@ describe("Group Ghost Admin Approval Workflow Server Actions", () => {
 
       mockDbQuerySequence([requestNotif], [group]);
 
-      await expect(rejectGroupGhostMerge("req-123")).rejects.toThrow(
+      const res = await rejectGroupGhostMerge("req-123");
+      expect(res.error).toBe(
         "Merge request has already been processed"
       );
     });

@@ -197,7 +197,7 @@ describe("Groups Server Actions", () => {
       });
 
       const res = await joinGroupAction({ inviteCode: "code123" });
-      expect(res).toEqual({ success: true, message: "Already a member", group_id: "g1" });
+      expect(res.data).toEqual({ success: true, message: "Already a member", group_id: "g1" });
     });
 
     it("claims ghost member if claimGhostMemberId is provided", async () => {

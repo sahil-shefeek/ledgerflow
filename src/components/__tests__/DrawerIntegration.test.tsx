@@ -40,6 +40,15 @@ vi.mock('@/hooks/personal/usePersonalPeople', () => ({
     }),
 }))
 
+vi.mock('@/hooks/use-profile', () => ({
+    useProfile: () => ({
+        profile: { id: 'user-1', full_name: 'User One', avatar_url: null },
+        isLoading: false,
+        error: null,
+        updateProfile: { mutate: vi.fn(), isPending: false },
+    }),
+}))
+
 vi.mock('@/hooks/business/useBusinessContacts', () => ({
     useBusinessContacts: () => ({
         data: [{ id: 'biz-contact-1', name: 'Acme Corp' }],

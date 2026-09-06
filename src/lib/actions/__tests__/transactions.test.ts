@@ -36,6 +36,11 @@ const { mockInsertValues, mockReturning, mockUpdateSet, mockDeleteWhere, mockTx,
 
     const mockDb = {
       transaction: vi.fn(async (cb: any) => cb(mockTx)),
+      select: vi.fn(() => ({
+        from: vi.fn(() => ({
+          where: vi.fn().mockResolvedValue([]),
+        })),
+      })),
       query: mockQuery,
       update: vi.fn(() => ({
         set: mockUpdateSet,
