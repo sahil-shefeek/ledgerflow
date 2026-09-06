@@ -5,13 +5,16 @@ import { usePersonalPeople } from '@/hooks/personal/usePersonalPeople'
 import { useContactTransactions } from '@/hooks/useContactTransactions'
 import { Button } from '@/components/ui/button'
 import { Icon } from "@/components/ui/icon";
-import { MoreVerticalIcon, ArrowLeft05Icon, TrashIcon, ReceiptIcon, Edit04Icon } from "@hugeicons/core-free-icons";
+import { MoreVerticalIcon, ArrowLeft05Icon, TrashIcon, ReceiptIcon, Edit04Icon, HandshakeIcon, PlusIcon } from "@hugeicons/core-free-icons";
 import { Card, CardContent } from '@/components/ui/card'
 import { formatTransactionDate, filterAndSortTransactions, TimeFilter, SortOption } from '@/lib/date-utils'
 import { cn } from '@/lib/utils'
 import { AddPersonDrawer } from '@/components/personal/AddPersonDrawer'
 import { PersonalTransactionDrawer } from '@/components/personal/PersonalTransactionDrawer'
 import { TransactionDetailsDrawer } from '@/components/finance/TransactionDetailsDrawer'
+import { SplitExpenseDrawer } from '@/components/groups/SplitExpenseDrawer'
+import { SettleUpDrawer } from '@/components/groups/SettleUpDrawer'
+import { useProfile } from '@/hooks/use-profile'
 import { useState, useMemo } from 'react'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
@@ -43,6 +46,7 @@ export default function PersonDetailsPage() {
     const params = useParams()
     const router = useRouter()
     const contactId = params.contactId as string
+    const { profile } = useProfile()
 
     // Fetch all personal people - optimization: could fetch single, but this is fine for now
     const { data: contacts } = usePersonalPeople()
@@ -176,6 +180,24 @@ export default function PersonDetailsPage() {
                         )}>
                             ₹{paiseToRupees(Math.abs(contact.net_balance)).toNumber().toLocaleString()}
                         </div>
+                    </div>
+
+                    <div className="flex gap-2 w-full max-w-xs mt-6 mx-auto">
+                        <SplitExpenseDrawer contact={contact} currentUserId={profile?.id || ''}>
+                            <Button className="flex-1" data-testid="split-expense-button">
+                                <Icon icon={PlusIcon} className="mr-2 h-4 w-4" />
+                                Split Expense
+                            </Button>
+                        </SplitExpenseDrawer>
+
+                        {contact.net_balance !== 0 && (
+                            <SettleUpDrawer contact={contact} currentUserId={profile?.id || ''}>
+                                <Button variant="outline" className="flex-1" data-testid="settle-up-button">
+                                    <Icon icon={HandshakeIcon} className="mr-2 h-4 w-4" />
+                                    Settle Up
+                                </Button>
+                            </SettleUpDrawer>
+                        )}
                     </div>
                 </CardContent>
             </Card>

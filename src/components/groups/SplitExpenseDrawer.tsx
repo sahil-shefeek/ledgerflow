@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { GroupMember } from '@/types'
+import { Contact, GroupMember } from '@/types'
 import { useSplitCalculator, SplitType } from '@/hooks/finance/useSplitCalculator'
 import { useAddTransaction } from '@/hooks/useAddTransaction'
+import { useProfile } from '@/hooks/use-profile'
 import { toast } from '@/components/ui/toast'
 import { Icon } from "@/components/ui/icon";
 import { ChevronRightIcon, ArrowLeft05Icon, PlusIcon, CheckIcon } from "@hugeicons/core-free-icons";
@@ -23,14 +24,51 @@ import { splitExpenseSchema, splitExpenseStep1Schema } from '@/lib/validations/s
 
 interface SplitExpenseDrawerProps {
     children: React.ReactNode
-    groupId: string
-    members: GroupMember[]
-    currentUserId: string // Passed from parent or fetched
+    groupId?: string
+    members?: GroupMember[]
+    contact?: Contact
+    currentUserId?: string // Passed from parent or fetched
 }
 
-export function SplitExpenseDrawer({ children, groupId, members, currentUserId }: SplitExpenseDrawerProps) {
+export function SplitExpenseDrawer({ children, groupId, members: propMembers, contact, currentUserId: propUserId }: SplitExpenseDrawerProps) {
     const [open, setOpen] = useState(false)
     const [step, setStep] = useState<1 | 2>(1)
+
+    const { profile } = useProfile()
+    const currentUserId = propUserId || profile?.id || ''
+
+    const members: GroupMember[] = useMemo(() => {
+        if (propMembers && propMembers.length > 0) return propMembers
+        if (contact) {
+            return [
+                {
+                    id: currentUserId,
+                    group_id: '',
+                    user_id: currentUserId,
+                    ghost_name: 'You',
+                    avatar_url: profile?.avatar_url || null,
+                    joined_at: new Date().toISOString(),
+                    profiles: {
+                        avatar_url: profile?.avatar_url || null,
+                        full_name: profile?.full_name || 'You'
+                    }
+                },
+                {
+                    id: contact.id,
+                    group_id: '',
+                    user_id: contact.linked_user_id || null,
+                    ghost_name: contact.name,
+                    avatar_url: contact.image_url,
+                    joined_at: new Date().toISOString(),
+                    profiles: {
+                        avatar_url: contact.image_url,
+                        full_name: contact.name
+                    }
+                }
+            ]
+        }
+        return []
+    }, [propMembers, contact, currentUserId, profile])
 
     // Step 1 State
     const [amount, setAmount] = useState<string>('')
@@ -111,11 +149,11 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
             const member = memberMap.get(a.memberId)
             return {
                 user_id: member?.user_id || undefined,
-                group_member_id: member?.id,
+                group_member_id: member?.group_id ? member?.id : undefined,
                 amount: a.amountOwed,
                 percentage: a.percent,
                 is_settled: member?.id === payerId,
-                member_name_snapshot: member ? getMemberName(member.id) : 'Unknown'
+                member_name_snapshot: member ? getMemberSnapshotName(member) : 'Unknown'
             }
         })
 
@@ -128,9 +166,10 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
             date: new Date(),
             flow: 'OUT',
             mode: 'PERSONAL',
-            group_id: groupId,
-            payer_id: payerMember?.user_id || undefined, // Real user fallback
-            payer_group_member_id: payerId, // Primary: group_member.id
+            group_id: groupId || null,
+            contact_id: contact ? contact.id : null,
+            payer_id: payerMember?.user_id || currentUserId, // Real user fallback
+            payer_group_member_id: groupId ? payerId : undefined, // Primary: group_member.id
             split_type: splitType,
             splits: splitsPayload,
             account_id: activeAccountId
@@ -145,12 +184,19 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
         })
     }
 
+    const getMemberSnapshotName = (m: GroupMember) => {
+        if (m.user_id === currentUserId && profile?.full_name) return profile.full_name
+        if (m.profiles?.full_name) return m.profiles.full_name
+        if (m.ghost_name && m.ghost_name !== 'You') return m.ghost_name
+        return 'Unknown'
+    }
+
     // Helper to get member name
     const getMemberName = (id: string) => {
         const m = memberMap.get(id)
         if (!m) return 'Unknown'
         // If it's me
-        if (m.user_id === currentUserId) return 'You'
+        if (m.user_id === currentUserId || m.id === currentUserId) return 'You'
         return m.profiles?.full_name || m.ghost_name || 'Member'
     }
 
@@ -162,7 +208,7 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
     return (
         <Drawer open={open} onOpenChange={handleOpenChange}>
             <DrawerTrigger render={children as React.ReactElement} />
-            <DrawerContent className="h-[90dvh] flex flex-col">
+            <DrawerContent className="h-[90dvh] flex flex-col" data-testid="split-expense-drawer">
                 {/* Header / Nav */}
                 <div className="mx-auto w-full max-w-sm mt-4 px-4 flex items-center justify-between">
                     {step === 2 ? (
@@ -380,12 +426,12 @@ export function SplitExpenseDrawer({ children, groupId, members, currentUserId }
 
                 <DrawerFooter className="max-w-sm mx-auto w-full">
                     {step === 1 ? (
-                        <Button onClick={handleNext} className="w-full">
+                        <Button onClick={handleNext} className="w-full" data-testid="split-expense-next-button">
                             Next
                             <Icon icon={ChevronRightIcon} className="ml-2 h-4 w-4" />
                         </Button>
                     ) : (
-                        <Button onClick={handleSubmit} disabled={isPending} className="w-full">
+                        <Button onClick={handleSubmit} disabled={isPending} className="w-full" data-testid="split-expense-submit-button">
                             {isPending ? 'Saving...' : 'Send Request'}
                         </Button>
                     )}

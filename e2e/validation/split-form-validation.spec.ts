@@ -96,13 +96,13 @@ test.describe('Split Form Validation', () => {
         await userBAmount.fill('30');
         await expect(page.getByText('Remaining: ₹10.00')).toBeVisible();
         await submitButton.click();
-        await expect(page.getByText('Custom amounts must sum to the total expense amount').first()).toBeVisible();
+        await expect(page.getByText(/custom amounts must sum exactly to the total expense amount/i).first()).toBeVisible();
 
         // Case B: Custom amounts sum to more than total (60 + 50 = 110 > 100)
         await userBAmount.fill('50');
         await expect(page.getByText('Remaining: -₹10.00')).toBeVisible();
         await submitButton.click();
-        await expect(page.getByText('Custom amounts must sum to the total expense amount').first()).toBeVisible();
+        await expect(page.getByText(/custom amounts must sum exactly to the total expense amount/i).first()).toBeVisible();
 
         // Case C: Negative custom amount (110 + -10 = 100)
         await userAAmount.fill('110');

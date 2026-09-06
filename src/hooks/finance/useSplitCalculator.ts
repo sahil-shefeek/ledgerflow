@@ -35,6 +35,26 @@ export function useSplitCalculator({ totalAmount, members, currentUserId }: UseS
         selectedMembers: members.map(m => m.id), // Default to all selected
     })
 
+    // Synchronize state when members change dynamically
+    useEffect(() => {
+        if (members.length > 0) {
+            setState(prev => {
+                const currentMember = members.find(m => m.user_id === currentUserId)
+                const defaultPayer = currentMember?.id || members[0]?.id || ''
+                const newPayerId = prev.payerId && members.some(m => m.id === prev.payerId)
+                    ? prev.payerId
+                    : defaultPayer
+                const validSelected = prev.selectedMembers.filter(id => members.some(m => m.id === id))
+                const newSelected = validSelected.length > 0 ? validSelected : members.map(m => m.id)
+                return {
+                    ...prev,
+                    payerId: newPayerId,
+                    selectedMembers: newSelected
+                }
+            })
+        }
+    }, [members, currentUserId])
+
     // Reset shares when split type changes (optional, but good for UX to avoid stale data confusion)
     const setSplitType = (type: SplitType) => {
         setState(prev => ({ ...prev, splitType: type, shares: {} }))

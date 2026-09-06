@@ -223,7 +223,16 @@ export const createTransactionAction = rpcActionWithAuth(
         await updateAccountBalance(tx, input.accountId, currentUser.id, delta);
       }
       if (input.contactId) {
-        const contactDelta = getSignedFlowDelta(input.flow, input.amount);
+        let contactAmount = input.amount;
+        if (input.splits && input.splits.length > 0) {
+          const contactSplit = input.splits.find(
+            (s) => s.userId ? s.userId !== currentUser.id : !s.isSettled
+          );
+          if (contactSplit) {
+            contactAmount = contactSplit.amount;
+          }
+        }
+        const contactDelta = getSignedFlowDelta(input.flow, contactAmount);
         await updateContactStats(tx, input.contactId, currentUser.id, contactDelta, 1, new Date(input.date));
       }
 

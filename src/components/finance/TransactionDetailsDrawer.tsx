@@ -134,7 +134,7 @@ export function TransactionDetailsDrawer({ transaction, open, onOpenChange, onEd
                                             return (
                                                 <div key={split.id || Math.random()} className="flex justify-between text-sm">
                                                     <span>{displayName}</span>
-                                                    <span>₹{split.amount}</span>
+                                                    <span>₹{paiseToRupees(split.amount).toNumber().toLocaleString()}</span>
                                                 </div>
                                             )
                                         })}
