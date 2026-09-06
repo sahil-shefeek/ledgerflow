@@ -145,6 +145,44 @@ export async function seedRegisteredUser(options: SeedUserOptions = {}): Promise
   };
 }
 
+export async function seedFriendship(userId1: string, userId2: string, status: 'PENDING' | 'ACCEPTED' = 'ACCEPTED') {
+  const [inserted] = await db.insert(friendships).values({
+    id: crypto.randomUUID(),
+    userId1,
+    userId2,
+    status,
+    initiatorId: userId1,
+  }).returning();
+
+  if (status === 'ACCEPTED') {
+    const [u1] = await db.select().from(user).where(eq(user.id, userId1));
+    const [u2] = await db.select().from(user).where(eq(user.id, userId2));
+    if (u1 && u2) {
+      const c1Id = crypto.randomUUID();
+      await db.insert(contacts).values({
+        id: c1Id,
+        userId: userId1,
+        name: u2.name,
+        linkedUserId: userId2,
+        type: 'OTHER',
+      });
+      globalTestDataTracker.contactIds.add(c1Id);
+
+      const c2Id = crypto.randomUUID();
+      await db.insert(contacts).values({
+        id: c2Id,
+        userId: userId2,
+        name: u1.name,
+        linkedUserId: userId1,
+        type: 'OTHER',
+      });
+      globalTestDataTracker.contactIds.add(c2Id);
+    }
+  }
+
+  return inserted;
+}
+
 export interface SeedContactOptions {
   name?: string;
   phone?: string;
